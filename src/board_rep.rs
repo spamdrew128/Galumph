@@ -113,7 +113,7 @@ impl Bitboard {
             Bitboard::new(1 << (row * 8 + col))
         }
 
-        for i in 0..SQ_CNT {
+        for i in 0..Square::CNT {
             let bitset = fen_index_as_bitboard(i);
             if bitset.overlaps(self) {
                 print!("X ");
@@ -198,6 +198,38 @@ impl Piece {
     pub const fn new(data: u8) -> Self {
         Self(data)
     }
+}
+
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
+pub enum Color {
+    #[default]
+    White,
+    Black,
+}
+
+impl Color {
+    pub const CNT: u8 = 2;
+    pub const LIST: [Self; Self::CNT as usize] = [Self::White, Self::Black];
+
+    pub const fn flip(self) -> Self {
+        match self {
+            Self::White => Self::Black,
+            Self::Black => Self::White,
+        }
+    }
+    pub const fn as_index(self) -> usize {
+        self as usize
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct GameState {
+    pub all: [Bitboard; Color::CNT as usize],
+    pub pieces: [Bitboard; Piece::CNT as usize],
+    // pub color_to_move: Color,
+    // pub ep_sq: Option<Square>,
+    // pub castle_rights: CastleRights,
+    // pub halfmoves: u16,
 }
 
 #[cfg(test)]
