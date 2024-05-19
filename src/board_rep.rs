@@ -5,46 +5,6 @@ pub const SQ_CNT: u8 = 64;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Bitboard(u64);
 
-impl Shl<u8> for Bitboard {
-    type Output = Self;
-
-    fn shl(self, shift: u8) -> Self::Output {
-        Self(self.0 << shift)
-    }
-}
-
-impl Shr<u8> for Bitboard {
-    type Output = Self;
-
-    fn shr(self, shift: u8) -> Self::Output {
-        Self(self.0 >> shift)
-    }
-}
-
-impl BitAnd for Bitboard {
-    type Output = Self;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        Self(self.0 & rhs.0)
-    }
-}
-
-impl BitOr for Bitboard {
-    type Output = Self;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        Self(self.0 | rhs.0)
-    }
-}
-
-impl Not for Bitboard {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        Self(!self.0)
-    }
-}
-
 struct Direction;
 impl Direction {
     const N: u8 = 0;
@@ -55,6 +15,7 @@ impl Direction {
     const SW: u8 = 5;
     const W: u8 = 6;
     const NW: u8 = 7;
+    const LIST: [u8; 8] = [0,1,2,3,4,5,6,7];
 }
 
 impl Bitboard {
@@ -103,6 +64,12 @@ impl Bitboard {
     }
 
     pub fn print(self) {
+        fn fen_index_as_bitboard(i: u8) -> Bitboard {
+            let row = 7 - (i / 8);
+            let col = i % 8;
+            Bitboard::new(1 << (row * 8 + col))
+        }
+
         for i in 0..SQ_CNT {
             let bitset = fen_index_as_bitboard(i);
             if bitset.overlaps(self) {
@@ -119,8 +86,58 @@ impl Bitboard {
     }
 }
 
-fn fen_index_as_bitboard(i: u8) -> Bitboard {
-    let row = 7 - (i / 8);
-    let col = i % 8;
-    Bitboard::new(1 << (row * 8 + col))
+impl Shl<u8> for Bitboard {
+    type Output = Self;
+
+    fn shl(self, shift: u8) -> Self::Output {
+        Self(self.0 << shift)
+    }
+}
+
+impl Shr<u8> for Bitboard {
+    type Output = Self;
+
+    fn shr(self, shift: u8) -> Self::Output {
+        Self(self.0 >> shift)
+    }
+}
+
+impl BitAnd for Bitboard {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
+}
+
+impl BitOr for Bitboard {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl Not for Bitboard {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        Self(!self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::board_rep::Direction;
+
+    use super::Bitboard;
+
+    #[test]
+    fn shifting_test() {
+        let bb = Bitboard::new(1) << 27;
+        bb.print();
+        println!();
+
+        bb.shift::<{ Direction::NE }>(1).print();
+    }
 }
