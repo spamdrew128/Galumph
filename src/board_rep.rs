@@ -1,7 +1,45 @@
 use std::ops::{BitAnd, BitOr, Not, Shl, Shr};
 
+use crate::tuple_constants_enum;
+
 pub const SQ_CNT: u8 = 64;
 
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Square(u8);
+
+impl Square {
+    #[rustfmt::skip]
+    tuple_constants_enum!(Self,
+        A8, B8, C8, D8, E8, F8, G8, H8,
+        A7, B7, C7, D7, E7, F7, G7, H7,
+        A6, B6, C6, D6, E6, F6, G6, H6,
+        A5, B5, C5, D5, E5, F5, G5, H5,
+        A4, B4, C4, D4, E4, F4, G4, H4,
+        A3, B3, C3, D3, E3, F3, G3, H3,
+        A2, B2, C2, D2, E2, F2, G2, H2,
+        A1, B1, C1, D1, E1, F1, G1, H1
+    );
+
+    pub const fn new(data: u8) -> Self {
+        Self(data)
+    }
+
+    pub const fn as_bitboard(self) -> Bitboard {
+        Bitboard::new(1 << self.0)
+    }
+
+    pub const fn as_u16(self) -> u16 {
+        self.0 as u16
+    }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
+    }
+
+    pub const fn mirror(self) -> Self {
+        Self(self.0 ^ 0b111000)
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Direction {
@@ -38,19 +76,19 @@ impl Bitboard {
 
     const fn shift(self, dir: Direction, shift: u8) -> Self {
         match dir {
-            Direction::N => Self(self.0 << (8 * shift)),
-            Direction::S => Self(self.0 >> (8 * shift)),
+            Direction::N => Self(self.0 >> (8 * shift)),
+            Direction::S => Self(self.0 << (8 * shift)),
             _ => {
                 let mut i = 0;
                 let mut data = self.0;
                 while i < shift {
                     data = match dir {
-                        Direction::NE => (data & !Self::H_FILE.0) << 9,
+                        Direction::NE => (data & !Self::H_FILE.0) >> 7,
                         Direction::E => (data & !Self::H_FILE.0) << 1,
-                        Direction::SE => (data & !Self::H_FILE.0) >> 7,
-                        Direction::SW => (data & !Self::A_FILE.0) >> 9,
+                        Direction::SE => (data & !Self::H_FILE.0) << 9,
+                        Direction::SW => (data & !Self::A_FILE.0) << 7,
                         Direction::W => (data & !Self::A_FILE.0) >> 1,
-                        Direction::NW => (data & !Self::A_FILE.0) << 7,
+                        Direction::NW => (data & !Self::A_FILE.0) >> 9,
                         _ => panic!("Invalid direction"),
                     };
                     i += 1;
@@ -70,7 +108,7 @@ impl Bitboard {
 
     pub fn print(self) {
         fn fen_index_as_bitboard(i: u8) -> Bitboard {
-            let row = 7 - (i / 8);
+            let row = i / 8;
             let col = i % 8;
             Bitboard::new(1 << (row * 8 + col))
         }
@@ -133,15 +171,14 @@ impl Not for Bitboard {
 
 #[cfg(test)]
 mod tests {
-    use crate::board_rep::Direction;
-
+    use crate::board_rep::{Direction, Square};
     use super::Bitboard;
 
     #[test]
     fn shifting_test() {
-        let bb = Bitboard::new(1) << 9;
+        let bb = Square::B2.as_bitboard();
         bb.print();
-        println!();
+        println!("---------------------");
 
         for dir in Direction::LIST {
             bb.shift(dir, 1).print();
