@@ -2,21 +2,26 @@ use std::ops::{BitAnd, BitOr, Not, Shl, Shr};
 
 pub const SQ_CNT: u8 = 64;
 
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Direction {
+    N, NE, E, SE, S, SW, W, NW
+}
+impl Direction {
+    pub const LIST: [Direction; 8] = [
+        Direction::N,
+        Direction::NE,
+        Direction::E,
+        Direction::SE,
+        Direction::S,
+        Direction::SW,
+        Direction::W,
+        Direction::NW
+    ];
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Bitboard(u64);
-
-struct Direction;
-impl Direction {
-    const N: u8 = 0;
-    const NE: u8 = 1;
-    const E: u8 = 2;
-    const SE: u8 = 3;
-    const S: u8 = 4;
-    const SW: u8 = 5;
-    const W: u8 = 6;
-    const NW: u8 = 7;
-    const LIST: [u8; 8] = [0,1,2,3,4,5,6,7];
-}
 
 impl Bitboard {
     pub const EMPTY: Self = Self::new(0);
@@ -31,15 +36,15 @@ impl Bitboard {
         self.0
     }
 
-    const fn shift<const DIR: u8>(self, shift: u8) -> Self {
-        match DIR {
+    const fn shift(self, dir: Direction, shift: u8) -> Self {
+        match dir {
             Direction::N => Self(self.0 << (8 * shift)),
             Direction::S => Self(self.0 >> (8 * shift)),
             _ => {
                 let mut i = 0;
                 let mut data = self.0;
                 while i < shift {
-                    data = match DIR {
+                    data = match dir {
                         Direction::NE => (data & !Self::H_FILE.0) << 9,
                         Direction::E => (data & !Self::H_FILE.0) << 1,
                         Direction::SE => (data & !Self::H_FILE.0) >> 7,
@@ -134,10 +139,12 @@ mod tests {
 
     #[test]
     fn shifting_test() {
-        let bb = Bitboard::new(1) << 27;
+        let bb = Bitboard::new(1) << 9;
         bb.print();
         println!();
 
-        bb.shift::<{ Direction::NE }>(1).print();
+        for dir in Direction::LIST {
+            bb.shift(dir, 1).print();
+        }
     }
 }
