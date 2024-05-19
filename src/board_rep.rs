@@ -2,12 +2,12 @@ use std::ops::{BitAnd, BitOr, Not, Shl, Shr};
 
 use crate::tuple_constants_enum;
 
-pub const SQ_CNT: u8 = 64;
-
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Square(u8);
 
 impl Square {
+    pub const CNT: u8 = 64;
+
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
         A8, B8, C8, D8, E8, F8, G8, H8,
@@ -169,10 +169,40 @@ impl Not for Bitboard {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct Piece(u8);
+
+impl Piece {
+    pub const CNT: u8 = 6;
+
+    #[rustfmt::skip]
+    tuple_constants_enum!(Self,
+        PAWN,
+        KNIGHT,
+        BISHOP,
+        ROOK,
+        QUEEN,
+        KING,
+        NONE
+    );
+
+    pub const LIST: [Self; Self::CNT as usize] = [
+        Self::KNIGHT,
+        Self::BISHOP,
+        Self::ROOK,
+        Self::QUEEN,
+        Self::PAWN,
+        Self::KING,
+    ];
+
+    pub const fn new(data: u8) -> Self {
+        Self(data)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::board_rep::{Direction, Square};
-    use super::Bitboard;
 
     #[test]
     fn shifting_test() {
