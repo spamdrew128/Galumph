@@ -1,6 +1,5 @@
+mod attacks;
 mod board_rep;
-pub mod util_macros;
+mod util_macros;
 
-fn main() {
-    
-}
+fn main() {}

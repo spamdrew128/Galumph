@@ -43,7 +43,14 @@ impl Square {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Direction {
-    N, NE, E, SE, S, SW, W, NW
+    N,
+    NE,
+    E,
+    SE,
+    S,
+    SW,
+    W,
+    NW,
 }
 impl Direction {
     pub const LIST: [Direction; 8] = [
@@ -54,7 +61,7 @@ impl Direction {
         Direction::S,
         Direction::SW,
         Direction::W,
-        Direction::NW
+        Direction::NW,
     ];
 }
 
@@ -74,7 +81,7 @@ impl Bitboard {
         self.0
     }
 
-    const fn shift(self, dir: Direction, shift: u8) -> Self {
+    pub const fn shift(self, dir: Direction, shift: u8) -> Self {
         match dir {
             Direction::N => Self(self.0 >> (8 * shift)),
             Direction::S => Self(self.0 << (8 * shift)),
@@ -96,6 +103,14 @@ impl Bitboard {
                 Self(data)
             }
         }
+    }
+
+    pub const fn or(self, rhs: Self) -> Self {
+        Self(self.0 | rhs.0)
+    }
+
+    pub const fn and(self, rhs: Self) -> Self {
+        Self(self.0 & rhs.0)
     }
 
     pub fn overlaps(self, rhs: Self) -> bool {
