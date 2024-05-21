@@ -14,11 +14,17 @@ macro_rules! init_attacks {
 }
 
 const PAWN_ATTACKS: [[Bitboard; Square::CNT as usize]; Color::CNT as usize] = [
-    init_attacks!(|sq_bb| { // Init white pawn attacks
-        sq_bb.shift(Direction::NE, 1).or(sq_bb.shift(Direction::NW, 1))
+    init_attacks!(|sq_bb| {
+        // Init white pawn attacks
+        sq_bb
+            .shift(Direction::NE, 1)
+            .or(sq_bb.shift(Direction::NW, 1))
     }),
-    init_attacks!(|sq_bb| { // Init black pawn attacks
-        sq_bb.shift(Direction::SE, 1).or(sq_bb.shift(Direction::SW, 1))
+    init_attacks!(|sq_bb| {
+        // Init black pawn attacks
+        sq_bb
+            .shift(Direction::SE, 1)
+            .or(sq_bb.shift(Direction::SW, 1))
     }),
 ];
 
@@ -33,4 +39,16 @@ const KNIGHT_ATTACKS: [Bitboard; Square::CNT as usize] = init_attacks!(|sq_bb| {
         .or(vert.shift(Direction::W, 1))
         .or(horiz.shift(Direction::N, 1))
         .or(horiz.shift(Direction::S, 1))
+});
+
+const KING_ATTACKS: [Bitboard; Square::CNT as usize] = init_attacks!(|sq_bb| {
+    sq_bb
+        .shift(Direction::N, 1)
+        .or(sq_bb.shift(Direction::NE, 1))
+        .or(sq_bb.shift(Direction::E, 1))
+        .or(sq_bb.shift(Direction::SE, 1))
+        .or(sq_bb.shift(Direction::S, 1))
+        .or(sq_bb.shift(Direction::SW, 1))
+        .or(sq_bb.shift(Direction::W, 1))
+        .or(sq_bb.shift(Direction::NW, 1))
 });
