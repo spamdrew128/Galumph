@@ -17,8 +17,8 @@ impl MagicEntry {
         table_offset: 0,
     };
 
-    const R_SHIFT: u8 = 12;
-    const B_SHIFT: u8 = 9;
+    const R_SHIFT: u8 = Square::CNT - 12;
+    const B_SHIFT: u8 = Square::CNT - 9;
 
     const fn new(mask: Bitboard, magic: u64, table_offset: usize) -> Self {
         Self {
@@ -33,7 +33,7 @@ impl MagicEntry {
     }
 }
 
-struct MagicHashTable {
+pub struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
     hash_table: [Bitboard; crate::magic_tables::TABLE_SIZE],
@@ -81,21 +81,20 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 }
 
 impl MagicHashTable {
-    pub const fn create() -> Self {
+    pub const fn generate() -> Self {
         let rook_dirs = &[Direction::N, Direction::E, Direction::S, Direction::W];
         let bishop_dirs = &[Direction::NE, Direction::SE, Direction::SW, Direction::NW];
 
         let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
         let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut hash_table = [Bitboard::EMPTY; crate::magic_tables::TABLE_SIZE];
 
         let mut offset = 0;
 
         // rooks
         let mut i = 0;
         while i < Square::CNT {
-            let sq = Square::new(i).mirror(); // the table squares are mirrored from ours :p
-            let (magic, size) = ROOK_MAGICS[sq.as_index()];
+            let sq = Square::new(i);
+            let (magic, size) = ROOK_MAGICS[sq.mirror().as_index()]; // the table squares are mirrored from ours :p
 
             rook_entries[sq.as_index()] =
                 MagicEntry::new(generate_mask(sq, rook_dirs), magic, offset);
@@ -107,8 +106,8 @@ impl MagicHashTable {
         // bishops
         i = 0;
         while i < Square::CNT {
-            let sq = Square::new(i).mirror(); // the table squares are mirrored from ours :p
-            let (magic, size) = BISHOP_MAGICS[sq.as_index()];
+            let sq = Square::new(i);
+            let (magic, size) = BISHOP_MAGICS[sq.mirror().as_index()]; // the table squares are mirrored from ours :p
 
             bishop_entries[sq.as_index()] =
                 MagicEntry::new(generate_mask(sq, bishop_dirs), magic, offset);
@@ -117,7 +116,11 @@ impl MagicHashTable {
             i += 1;
         }
 
+        assert!(offset == crate::magic_tables::TABLE_SIZE);
+
         // fill hash table
+        let mut hash_table = [Bitboard::EMPTY; crate::magic_tables::TABLE_SIZE];
+
         i = 0;
         while i < Square::CNT {
             let sq = Square::new(i);

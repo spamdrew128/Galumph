@@ -1,4 +1,7 @@
-use crate::board_rep::{Bitboard, Color, Direction, Square};
+use crate::{
+    board_rep::{Bitboard, Color, Direction, Square},
+    magic::MagicHashTable,
+};
 
 macro_rules! init_attacks {
     (|$sq_bb:ident| $body:expr) => {{
@@ -52,3 +55,6 @@ const KING_ATTACKS: [Bitboard; Square::CNT as usize] = init_attacks!(|sq_bb| {
         .or(sq_bb.shift(Direction::W, 1))
         .or(sq_bb.shift(Direction::NW, 1))
 });
+
+#[allow(long_running_const_eval)]
+// const MAGIC_HASH_TABLE: MagicHashTable = MagicHashTable::generate();
