@@ -56,5 +56,5 @@ const KING_ATTACKS: [Bitboard; Square::CNT as usize] = init_attacks!(|sq_bb| {
         .or(sq_bb.shift(Direction::NW, 1))
 });
 
-#[allow(long_running_const_eval)]
+// #[allow(long_running_const_eval)]
 // const MAGIC_HASH_TABLE: MagicHashTable = MagicHashTable::generate();

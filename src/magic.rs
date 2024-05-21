@@ -87,6 +87,7 @@ impl MagicHashTable {
 
         let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
         let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
+        let mut hash_table = [Bitboard::EMPTY; crate::magic_tables::TABLE_SIZE];
 
         let mut offset = 0;
 
@@ -99,6 +100,24 @@ impl MagicHashTable {
             rook_entries[sq.as_index()] =
                 MagicEntry::new(generate_mask(sq, rook_dirs), magic, offset);
             offset += size;
+
+            // fill_rook_entries
+            let r_entry = &rook_entries[i as usize];
+            let set = r_entry.mask.as_u64();
+            let mut subset: u64 = 0;
+            loop {
+                let blockers = Bitboard::new(subset);
+                let index = r_entry.hash_index(blockers, MagicEntry::R_SHIFT);
+                assert!(index < size);
+                
+                hash_table[index] =
+                    generate_attacks(sq, blockers, rook_dirs);
+
+                subset = subset.wrapping_sub(set) & set;
+                if subset == 0 {
+                    break;
+                }
+            }
 
             i += 1;
         }
@@ -113,40 +132,16 @@ impl MagicHashTable {
                 MagicEntry::new(generate_mask(sq, bishop_dirs), magic, offset);
             offset += size;
 
-            i += 1;
-        }
-
-        assert!(offset == crate::magic_tables::TABLE_SIZE);
-
-        // fill hash table
-        let mut hash_table = [Bitboard::EMPTY; crate::magic_tables::TABLE_SIZE];
-
-        i = 0;
-        while i < Square::CNT {
-            let sq = Square::new(i);
-
-            // rook stuff
-            let r_entry = &rook_entries[i as usize];
-            let set = r_entry.mask.as_u64();
-            let mut subset: u64 = 0;
-            loop {
-                let blockers = Bitboard::new(subset);
-                hash_table[r_entry.hash_index(blockers, MagicEntry::R_SHIFT)] =
-                    generate_attacks(sq, blockers, rook_dirs);
-
-                subset = subset.wrapping_sub(set) & set;
-                if subset == 0 {
-                    break;
-                }
-            }
-
-            // bishop stuff
+            // bishop hash entries
             let b_entry = &bishop_entries[i as usize];
             let set = b_entry.mask.as_u64();
             let mut subset: u64 = 0;
             loop {
                 let blockers = Bitboard::new(subset);
-                hash_table[b_entry.hash_index(blockers, MagicEntry::B_SHIFT)] =
+                let index = b_entry.hash_index(blockers, MagicEntry::B_SHIFT);
+                assert!(index < size);
+
+                hash_table[index] =
                     generate_attacks(sq, blockers, rook_dirs);
 
                 subset = subset.wrapping_sub(set) & set;
@@ -157,6 +152,8 @@ impl MagicHashTable {
 
             i += 1;
         }
+
+        assert!(offset == crate::magic_tables::TABLE_SIZE);
 
         Self {
             rook_entries,
