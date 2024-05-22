@@ -7,6 +7,7 @@ use crate::{
 struct MagicEntry {
     mask: Bitboard,
     magic: u64,
+    shift: u8,
     table_offset: usize,
 }
 
@@ -14,22 +15,25 @@ impl MagicEntry {
     const EMPTY: Self = Self {
         mask: Bitboard::EMPTY,
         magic: 0,
+        shift: 0,
         table_offset: 0,
     };
 
-    const R_SHIFT: u8 = Square::CNT - 12;
-    const B_SHIFT: u8 = Square::CNT - 9;
+    // const R_SHIFT: u8 = Square::CNT - 12;
+    // const B_SHIFT: u8 = Square::CNT - 9;
 
     const fn new(mask: Bitboard, magic: u64, table_offset: usize) -> Self {
+        let shift = Square::CNT - mask.popcount();
         Self {
             mask,
             magic,
+            shift,
             table_offset,
         }
     }
 
-    const fn hash_index(&self, blockers: Bitboard, shift: u8) -> usize {
-        (((blockers.as_u64().wrapping_mul(self.magic)) >> shift) as usize) + self.table_offset
+    const fn hash_index(&self, blockers: Bitboard) -> usize {
+        (((blockers.as_u64().wrapping_mul(self.magic)) >> self.shift) as usize) + self.table_offset
     }
 }
 
@@ -95,7 +99,8 @@ impl MagicHashTable {
         let mut i = 0;
         while i < Square::CNT {
             let sq = Square::new(i);
-            let (magic, size) = ROOK_MAGICS[sq.mirror().as_index()]; // the table squares are mirrored from ours :p
+            let (magic, start, end) = ROOK_MAGICS[sq.as_index()];
+            let size = end - start;
 
             rook_entries[sq.as_index()] =
                 MagicEntry::new(generate_mask(sq, rook_dirs), magic, offset);
@@ -107,11 +112,10 @@ impl MagicHashTable {
             let mut subset: u64 = 0;
             loop {
                 let blockers = Bitboard::new(subset);
-                let index = r_entry.hash_index(blockers, MagicEntry::R_SHIFT);
+                let index = r_entry.hash_index(blockers);
                 assert!(index < size);
-                
-                hash_table[index] =
-                    generate_attacks(sq, blockers, rook_dirs);
+
+                hash_table[index] = generate_attacks(sq, blockers, rook_dirs);
 
                 subset = subset.wrapping_sub(set) & set;
                 if subset == 0 {
@@ -126,7 +130,8 @@ impl MagicHashTable {
         i = 0;
         while i < Square::CNT {
             let sq = Square::new(i);
-            let (magic, size) = BISHOP_MAGICS[sq.mirror().as_index()]; // the table squares are mirrored from ours :p
+            let (magic, start, end) = BISHOP_MAGICS[sq.as_index()];
+            let size = end - start;
 
             bishop_entries[sq.as_index()] =
                 MagicEntry::new(generate_mask(sq, bishop_dirs), magic, offset);
@@ -138,11 +143,10 @@ impl MagicHashTable {
             let mut subset: u64 = 0;
             loop {
                 let blockers = Bitboard::new(subset);
-                let index = b_entry.hash_index(blockers, MagicEntry::B_SHIFT);
+                let index = b_entry.hash_index(blockers);
                 assert!(index < size);
 
-                hash_table[index] =
-                    generate_attacks(sq, blockers, rook_dirs);
+                hash_table[index] = generate_attacks(sq, blockers, rook_dirs);
 
                 subset = subset.wrapping_sub(set) & set;
                 if subset == 0 {
