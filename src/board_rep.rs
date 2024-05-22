@@ -105,6 +105,14 @@ impl Bitboard {
         }
     }
 
+    pub const fn is_empty(self) -> bool {
+        self.0 == 0
+    }
+
+    pub const fn not_empty(self) -> bool {
+        self.0 != 0
+    }
+
     pub const fn or(self, rhs: Self) -> Self {
         Self(self.0 | rhs.0)
     }
@@ -113,8 +121,12 @@ impl Bitboard {
         Self(self.0 & rhs.0)
     }
 
-    pub fn overlaps(self, rhs: Self) -> bool {
-        (self & rhs) != Bitboard::EMPTY
+    pub const fn not(self) -> Self {
+        Self(!self.0)
+    }
+
+    pub const fn overlaps(self, rhs: Self) -> bool {
+        self.and(rhs).not_empty()
     }
 
     pub const fn popcount(self) -> u8 {
