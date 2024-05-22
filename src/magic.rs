@@ -3,6 +3,9 @@ use crate::{
     magic_tables::{BISHOP_MAGICS, ROOK_MAGICS},
 };
 
+const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
+const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
+
 #[derive(Debug)]
 struct MagicEntry {
     mask: Bitboard,
@@ -85,10 +88,7 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 }
 
 impl MagicHashTable {
-    pub const fn generate() -> Self {
-        let rook_dirs = &[Direction::N, Direction::E, Direction::S, Direction::W];
-        let bishop_dirs = &[Direction::NE, Direction::SE, Direction::SW, Direction::NW];
-
+    pub const fn construct() -> Self {
         let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
         let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
         let mut hash_table = [Bitboard::EMPTY; crate::magic_tables::TABLE_SIZE];
@@ -103,7 +103,7 @@ impl MagicHashTable {
             let size = end - start;
 
             rook_entries[sq.as_index()] =
-                MagicEntry::new(generate_mask(sq, rook_dirs), magic, offset);
+                MagicEntry::new(generate_mask(sq, &ROOK_DIRS), magic, offset);
             offset += size;
 
             // fill_rook_entries
@@ -113,9 +113,9 @@ impl MagicHashTable {
             loop {
                 let blockers = Bitboard::new(subset);
                 let index = r_entry.hash_index(blockers);
-                assert!(index < size);
+                assert!(index < offset);
 
-                hash_table[index] = generate_attacks(sq, blockers, rook_dirs);
+                hash_table[index] = generate_attacks(sq, blockers, &ROOK_DIRS);
 
                 subset = subset.wrapping_sub(set) & set;
                 if subset == 0 {
@@ -134,7 +134,7 @@ impl MagicHashTable {
             let size = end - start;
 
             bishop_entries[sq.as_index()] =
-                MagicEntry::new(generate_mask(sq, bishop_dirs), magic, offset);
+                MagicEntry::new(generate_mask(sq, &BISHOP_DIRS), magic, offset);
             offset += size;
 
             // bishop hash entries
@@ -144,9 +144,9 @@ impl MagicHashTable {
             loop {
                 let blockers = Bitboard::new(subset);
                 let index = b_entry.hash_index(blockers);
-                assert!(index < size);
+                assert!(index < offset);
 
-                hash_table[index] = generate_attacks(sq, blockers, rook_dirs);
+                hash_table[index] = generate_attacks(sq, blockers, &BISHOP_DIRS);
 
                 subset = subset.wrapping_sub(set) & set;
                 if subset == 0 {
@@ -163,6 +163,64 @@ impl MagicHashTable {
             rook_entries,
             bishop_entries,
             hash_table,
+        }
+    }
+
+    pub fn rook_attack_set(&self, sq: Square, occupied: Bitboard) -> Bitboard {
+        let entry = &self.rook_entries[sq.as_index()];
+        let blockers = entry.mask & occupied;
+        self.hash_table[entry.hash_index(blockers)]
+    }
+
+    pub fn bishop_attack_set(&self, sq: Square, occupied: Bitboard) -> Bitboard {
+        let entry = &self.bishop_entries[sq.as_index()];
+        let blockers = entry.mask & occupied;
+        self.hash_table[entry.hash_index(blockers)]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{attacks, board_rep::{Bitboard, Square}};
+
+    use super::{generate_attacks, generate_mask, BISHOP_DIRS, ROOK_DIRS};
+
+    #[test]
+    fn exhaustive_slider_test() {
+        for i in 0..Square::CNT {
+            let sq = Square::new(i);
+            let r_mask = generate_mask(sq, &ROOK_DIRS).as_u64();
+            let b_mask = generate_mask(sq, &BISHOP_DIRS).as_u64();
+
+            // ROOK TEST
+            let set = r_mask;
+            let mut subset = 0;
+            loop {
+                let blockers = Bitboard::new(subset);
+                let attacks = generate_attacks(sq, blockers, &ROOK_DIRS);
+
+                assert_eq!(attacks::rook(sq, blockers), attacks);
+
+                subset = subset.wrapping_sub(set) & set;
+                if subset == 0 {
+                    break;
+                }
+            }
+
+            // BISHOP TEST
+            let set = b_mask;
+            let mut subset = 0;
+            loop {
+                let blockers = Bitboard::new(subset);
+                let attacks = generate_attacks(sq, blockers, &BISHOP_DIRS);
+
+                assert_eq!(attacks::bishop(sq, blockers), attacks);
+
+                subset = subset.wrapping_sub(set) & set;
+                if subset == 0 {
+                    break;
+                }
+            }
         }
     }
 }
