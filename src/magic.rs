@@ -181,7 +181,10 @@ impl MagicHashTable {
 
 #[cfg(test)]
 mod tests {
-    use crate::{attacks, board_rep::{Bitboard, Square}};
+    use crate::{
+        attacks,
+        board_rep::{Bitboard, Square},
+    };
 
     use super::{generate_attacks, generate_mask, BISHOP_DIRS, ROOK_DIRS};
 
