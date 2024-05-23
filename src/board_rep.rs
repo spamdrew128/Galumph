@@ -36,6 +36,14 @@ impl Square {
         self.0 as usize
     }
 
+    pub const fn left(self, count: u8) -> Self {
+        Self(self.0 - count)
+    }
+
+    pub const fn right(self, count: u8) -> Self {
+        Self(self.0 + count)
+    }
+
     pub const fn mirror(self) -> Self {
         Self(self.0 ^ 0b111000)
     }
@@ -202,13 +210,14 @@ pub struct Piece(u8);
 impl Piece {
     pub const CNT: u8 = 6;
 
+    // QUEEN MUST BE TOP FOR NOISY DETECTION
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
-        PAWN,
-        KNIGHT,
-        BISHOP,
-        ROOK,
         QUEEN,
+        ROOK,
+        BISHOP,
+        KNIGHT,
+        PAWN,
         KING,
         NONE
     );
@@ -224,6 +233,10 @@ impl Piece {
 
     pub const fn new(data: u8) -> Self {
         Self(data)
+    }
+
+    pub const fn as_u8(self) -> u8 {
+        self.0
     }
 }
 
