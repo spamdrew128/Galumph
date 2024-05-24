@@ -1,3 +1,6 @@
+// remove this later!
+#![allow(dead_code)]
+
 mod attacks;
 mod board_rep;
 mod chess_move;

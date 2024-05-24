@@ -213,10 +213,10 @@ impl Piece {
     // QUEEN MUST BE TOP FOR NOISY DETECTION
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
-        QUEEN,
-        ROOK,
-        BISHOP,
         KNIGHT,
+        BISHOP,
+        ROOK,
+        QUEEN,
         PAWN,
         KING,
         NONE
