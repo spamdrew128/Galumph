@@ -93,3 +93,26 @@ impl Move {
         Piece::new(piece_bits as u8)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::board_rep::{Piece, Square};
+
+    use super::{Flag, Move};
+
+    #[test]
+    fn basic_test() {
+        let to = Square::new(0b10110);
+        let from = Square::new(0b101);
+        let flag = Flag::QUEEN_CAPTURE_PROMO;
+
+        let mv = Move::new(to, from, flag);
+        assert_eq!(to, mv.to());
+        assert_eq!(from, mv.from());
+        assert_eq!(flag, mv.flag());
+        assert_eq!(Piece::QUEEN, mv.promo_piece());
+    
+        assert!(mv.is_capture());
+        assert!(mv.is_noisy());
+    }
+}
