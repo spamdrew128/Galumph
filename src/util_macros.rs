@@ -15,8 +15,8 @@ macro_rules! tuple_constants_enum {
 #[macro_export]
 macro_rules! bb_from_squares {
     ($($sq:ident),*) => {{
-        let mut result = Bitboard::default();
-        $(result |= Square::$sq.as_bitboard();)*
+        let mut result = Bitboard::EMPTY;
+        $(result = result.or(Square::$sq.as_bitboard());)*
         result
     }};
 }
