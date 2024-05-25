@@ -7,6 +7,7 @@ mod chess_move;
 mod magic;
 mod magic_tables;
 mod movegen;
+mod perft;
 mod util_macros;
 
 fn main() {}

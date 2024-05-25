@@ -9,6 +9,8 @@ pub struct Square(u8);
 
 impl Square {
     pub const CNT: u8 = 64;
+    pub const RANK_CNT: u8 = 8;
+    pub const COL_CNT: u8 = 8;
 
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
@@ -50,7 +52,7 @@ impl Square {
         Self(self.0 ^ 0b111000)
     }
 
-    pub fn from_string(s: &str) -> Option<Self> {
+    fn from_string(s: &str) -> Option<Self> {
         if s.len() != 2 {
             return None;
         }
@@ -60,14 +62,28 @@ impl Square {
         let rank_char = chars.next().unwrap();
 
         let file_num: u8 = (file_char as u8) - ('a' as u8);
-        let rank_char: u8 = (rank_char as u8) - ('1' as u8);
-        let pos = rank_char * 8 + file_num;
+        let rank_num: u8 = 7 - ((rank_char as u8) - ('1' as u8));
+        let pos = rank_num * 8 + file_num;
 
         if pos >= Square::CNT {
             return None;
         }
 
         Some(Square(pos))
+    }
+
+    fn as_string(self) -> String {
+        let mut res = String::new();
+
+        let file_num = self.0 % 8;
+        let rank_num = 7 - (self.0 / 8);
+
+        let file_char = (file_num + ('a' as u8)) as char;
+        let rank_char = (rank_num + ('1' as u8)) as char;
+
+        res.push(file_char);
+        res.push(rank_char);
+        res
     }
 }
 
@@ -286,7 +302,7 @@ impl Piece {
         self.0 as usize
     }
 
-    pub fn from_char(ch: char) -> Option<Self> {
+    fn from_char(ch: char) -> Option<Self> {
         match ch {
             'n' | 'N' => Some(Self::KNIGHT),
             'b' | 'B' => Some(Self::BISHOP),
@@ -295,6 +311,24 @@ impl Piece {
             'p' | 'P' => Some(Self::PAWN),
             'k' | 'K' => Some(Self::KING),
             _ => None,
+        }
+    }
+
+    fn as_char(self, color: Color) -> char {
+        let ch = match self {
+            Self::KNIGHT => 'N',
+            Self::BISHOP => 'B',
+            Self::ROOK => 'R',
+            Self::QUEEN => 'Q',
+            Self::PAWN => 'P',
+            Self::KING => 'K',
+            _ => panic!("INVALID PIECE"),
+        };
+
+        if color == Color::Black {
+            ch.to_ascii_lowercase()
+        } else {
+            ch
         }
     }
 }
@@ -321,16 +355,23 @@ impl Color {
         self as usize
     }
 
-    pub fn from_char(ch: char) -> Option<Self> {
+    fn from_char(ch: char) -> Option<Self> {
         match ch {
             'w' | 'W' => Some(Self::White),
             'b' | 'B' => Some(Self::Black),
             _ => None,
         }
     }
+
+    fn as_char(self) -> char {
+        match self {
+            Self::White => 'w',
+            Self::Black => 'b',
+        }
+    }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct CastleRights(u8);
 
 impl CastleRights {
@@ -375,6 +416,24 @@ impl CastleRights {
         }
         Self(bits)
     }
+
+    fn as_string(self) -> String {
+        let mut res = String::new();
+        let masks = [Self::W_KS, Self::W_QS, Self::B_KS, Self::B_QS];
+        let chars = ['K', 'Q', 'k', 'q'];
+
+        for (&mask, &ch) in masks.iter().zip(chars.iter()) {
+            if self.0 & mask > 0 {
+                res.push(ch);
+            }
+        }
+
+        if res.is_empty() {
+            res.push('-');
+        }
+
+        res
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -401,23 +460,34 @@ impl GameState {
         }
     }
 
-    fn from_fen(fen: &str) {
+    fn piece_on_sq(&self, sq: Square) -> Piece {
+        let bitset = sq.as_bitboard();
+        for piece in Piece::LIST {
+            if bitset.overlaps(self.pieces[piece.as_index()]) {
+                return piece;
+            }
+        }
+        Piece::NONE
+    }
+
+    fn from_fen(fen: &str) -> Self {
         let mut state = Self::new();
         let mut split = fen.split_whitespace();
 
-        let pos = split.next().unwrap();
+        let piece_grid = split.next().unwrap();
         let stm = split.next().unwrap().chars().next().unwrap();
         let castling = split.next().unwrap();
         let ep = split.next().unwrap();
         let halfmoves = split.next().unwrap();
 
-        let rows = pos.split('/');
+        let rows = piece_grid.split('/');
         let mut i = 0;
         for row_str in rows {
-            let bitset = Square::new(i).as_bitboard();
             let chars: Vec<char> = row_str.chars().collect();
 
             for ch in chars {
+                let bitset = Square::new(i).as_bitboard();
+
                 if let Some(piece) = Piece::from_char(ch) {
                     state.all[ch.is_lowercase() as usize] |= bitset;
                     state.pieces[piece.as_index()] |= bitset;
@@ -433,12 +503,78 @@ impl GameState {
         state.castle_rights = CastleRights::from_str(castling);
         state.ep_sq = Square::from_string(ep);
         state.halfmoves = halfmoves.parse::<u16>().unwrap();
+
+        state
+    }
+
+    fn as_fen(&self) -> String {
+        let mut res = String::new();
+
+        let mut sq_num = 0;
+        for _ in 0..Square::RANK_CNT {
+            let mut empty = 0;
+            let mut rank_string = String::new();
+            for _ in 0..Square::COL_CNT {
+                let sq = Square(sq_num);
+                let piece = self.piece_on_sq(sq);
+
+                if piece == Piece::NONE {
+                    empty += 1
+                } else {
+                    if empty > 0 {
+                        rank_string.push(char::from_digit(empty, 10).unwrap());
+                        empty = 0;
+                    }
+
+                    for color in Color::LIST {
+                        if sq.as_bitboard().overlaps(self.all[color.as_index()]) {
+                            rank_string.push(piece.as_char(color));
+                            break;
+                        }
+                    }
+                }
+
+                sq_num += 1
+            }
+
+            if empty > 0 {
+                rank_string.push(char::from_digit(empty, 10).unwrap());
+            }
+
+            if sq_num < Square::CNT {
+                rank_string.push('/');
+            }
+
+            res.push_str(rank_string.as_str());
+        }
+
+        res.push(' ');
+        res.push(self.stm.as_char());
+        res.push(' ');
+        res.push_str(self.castle_rights.as_string().as_str());
+        res.push(' ');
+        if let Some(ep) = self.ep_sq {
+            res.push_str(ep.as_string().as_str());
+        } else {
+            res.push('-');
+        }
+        res.push(' ');
+        res.push_str(self.halfmoves.to_string().as_str());
+        res.push(' ');
+        res.push('1');
+
+        res
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::board_rep::{Direction, Square};
+    use crate::{
+        board_rep::{Direction, GameState, Square},
+        perft,
+    };
+
+    use super::Bitboard;
 
     #[test]
     fn shifting_test() {
@@ -448,6 +584,15 @@ mod tests {
 
         for dir in Direction::LIST {
             bb.shift(dir, 1).print();
+        }
+    }
+
+    #[test]
+    fn fen_test() {
+        let test_postions = perft::test_postions();
+        for pos in test_postions {
+            let fen = pos.fen;
+            assert_eq!(GameState::from_fen(fen).as_fen(), fen);
         }
     }
 }
