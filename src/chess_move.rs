@@ -35,7 +35,7 @@ impl Move {
     const FLAG_OFFSET: u8 = 12;
     const PROMO_PIECE_OFFSET: u8 = 12;
 
-    const NULL: Self = Self(0);
+    pub const NULL: Self = Self(0);
 
     pub const fn is_null(self) -> bool {
         self.0 == 0
@@ -111,7 +111,7 @@ mod tests {
         assert_eq!(from, mv.from());
         assert_eq!(flag, mv.flag());
         assert_eq!(Piece::QUEEN, mv.promo_piece());
-    
+
         assert!(mv.is_capture());
         assert!(mv.is_noisy());
     }

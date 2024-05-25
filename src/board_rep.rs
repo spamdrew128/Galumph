@@ -141,6 +141,21 @@ impl Bitboard {
         self.0.count_ones() as u8
     }
 
+    const fn lsb(self) -> Square {
+        Square::new(self.0.trailing_zeros() as u8)
+    }
+
+    fn reset_lsb(&mut self) {
+        self.0 = self.0 & (self.0 - 1);
+    }
+
+    pub fn pop_lsb(&mut self) -> Square {
+        debug_assert!(self.not_empty());
+        let sq = self.lsb();
+        self.reset_lsb();
+        sq
+    }
+
     pub fn print(self) {
         fn fen_index_as_bitboard(i: u8) -> Bitboard {
             let row = i / 8;
