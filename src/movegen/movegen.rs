@@ -1,7 +1,10 @@
 use crate::{
-    attacks, bitloop,
-    board_rep::{Bitboard, Board, Piece, Square},
-    chess_move::{Flag, Move},
+    bitloop,
+    movegen::{
+        attacks,
+        board_rep::{Bitboard, Board, Piece, Square},
+        chess_move::{Flag, Move},
+    },
 };
 
 macro_rules! into_moves {

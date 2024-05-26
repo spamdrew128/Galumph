@@ -1,4 +1,7 @@
-use crate::{attacks, board_rep::{Board, Color, Piece, Square}};
+use crate::movegen::{
+    attacks,
+    board_rep::{Board, Color, Piece, Square},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
@@ -177,14 +180,14 @@ impl Move {
         }
     }
 
-    pub fn is_pseudolegal(self, board: &Board) -> bool {
+    pub fn is_pseudolegal(self, _board: &Board) -> bool {
         true
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::board_rep::{Piece, Square};
+    use crate::movegen::board_rep::{Piece, Square};
 
     use super::{Flag, Move};
 
