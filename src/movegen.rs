@@ -42,8 +42,22 @@ impl MovePicker {
         self.len += 1;
     }
 
-    fn new() -> Self {
-        todo!()
+    fn take(&mut self) -> Move {
+        let mv = self.list[self.idx];
+        self.idx += 1;
+        mv
+    }
+
+    pub fn new(board: &Board) -> Self {
+        let mut res = Self {
+            list: [Move::NULL; Self::SIZE],
+            idx: 0,
+            len: 0,
+        };
+        res.gen_moves::<true>(board);
+        res.gen_moves::<false>(board);
+
+        res
     }
 
     fn gen_moves<const NOISY: bool>(&mut self, board: &Board) {
@@ -149,6 +163,14 @@ impl MovePicker {
             if board.can_qs_castle() {
                 self.add(Move::new_qs_castle(king_sq))
             }
+        }
+    }
+
+    pub fn pick(&mut self) -> Option<Move> {
+        if self.idx < self.len {
+            self.pick()
+        } else {
+            None
         }
     }
 }

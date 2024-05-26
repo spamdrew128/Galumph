@@ -1,7 +1,11 @@
-use crate::{attacks, bb_from_squares, bitloop, chess_move::Move, tuple_constants_enum};
+use crate::{
+    attacks, bb_from_squares, bitloop,
+    chess_move::{Flag, Move},
+    tuple_constants_enum,
+};
 use std::{
     char,
-    ops::{BitAnd, BitOr, BitOrAssign, Not, Shl, Shr},
+    ops::{BitAnd, BitOr, BitOrAssign, BitXorAssign, Not, Shl, Shr},
 };
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
@@ -38,6 +42,15 @@ impl Square {
 
     pub const fn as_index(self) -> usize {
         self.0 as usize
+    }
+
+    fn color(self, board: &Board) -> Option<Color> {
+        for color in Color::LIST {
+            if self.as_bitboard().overlaps(board.all[color.as_index()]) {
+                return Some(color);
+            }
+        }
+        None
     }
 
     pub const fn left(self, count: u8) -> Self {
@@ -110,7 +123,7 @@ impl Square {
         Some(Square(pos))
     }
 
-    fn as_string(self) -> String {
+    pub fn as_string(self) -> String {
         let mut res = String::new();
 
         let file_num = self.0 % 8;
@@ -297,7 +310,13 @@ impl BitOr for Bitboard {
 
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
-        *self = *self | rhs;
+        self.0 = self.0 | rhs.0;
+    }
+}
+
+impl BitXorAssign for Bitboard {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.0 = self.0 ^ rhs.0;
     }
 }
 
@@ -360,7 +379,7 @@ impl Piece {
         }
     }
 
-    fn as_char(self, color: Color) -> char {
+    pub fn as_char(self, color: Color) -> char {
         let ch = match self {
             Self::KNIGHT => 'N',
             Self::BISHOP => 'B',
@@ -605,7 +624,85 @@ impl Board {
         self.castle_rights.can_qs_castle(&self)
     }
 
-    fn from_fen(fen: &str) -> Self {
+    fn toggle(&mut self, mask: Bitboard, piece: Piece, color: Color) {
+        self.all[color.as_index()] ^= mask;
+        self.pieces[piece.as_index()] ^= mask;
+    }
+
+    pub fn try_play_move(&mut self, mv: Move) -> bool {
+        let stm = self.stm;
+
+        let to_sq = mv.to();
+        let from_sq = mv.from();
+        let to_bb = to_sq.as_bitboard();
+        let from_bb = from_sq.as_bitboard();
+        let piece = self.piece_on_sq(from_sq);
+
+        if mv.is_capture() {
+            let captured_piece = self.piece_on_sq(to_sq);
+            self.toggle(to_bb, captured_piece, stm.flip());
+        }
+
+        self.toggle(to_bb | from_bb, piece, stm);
+
+        match mv.flag() {
+            Flag::NONE | Flag::CAPTURE => {}
+            Flag::DOUBLE_PUSH => {
+                let ep_sq = to_sq.row_swap();
+                let opp_pawns = self.piece_bb(Piece::PAWN, stm.flip());
+
+                self.ep_sq = if attacks::pawn(ep_sq, stm).overlaps(opp_pawns) {
+                    Some(ep_sq) // only include pseudolegal EP
+                } else {
+                    None
+                }
+            }
+            Flag::KS_CASTLE => {
+                let rook_to = from_sq.right(1);
+                let rook_from = from_sq.right(3);
+                self.toggle(
+                    rook_to.as_bitboard() | rook_from.as_bitboard(),
+                    Piece::ROOK,
+                    stm,
+                );
+            }
+            Flag::QS_CASTLE => {
+                let rook_to = from_sq.left(1);
+                let rook_from = from_sq.left(4);
+                self.toggle(
+                    rook_to.as_bitboard() | rook_from.as_bitboard(),
+                    Piece::ROOK,
+                    stm,
+                );
+            }
+            Flag::EP => {
+                let opp_pawn_sq = to_sq.row_swap();
+                self.toggle(opp_pawn_sq.as_bitboard(), Piece::PAWN, stm.flip());
+            }
+            _ => {
+                // assume promotion
+                self.toggle(to_bb, piece, stm);
+                self.toggle(to_bb, mv.promo_piece(), stm);
+            }
+        }
+
+        if self.king_sq().is_attacked(&self) {
+            return false;
+        }
+
+        // update state
+        self.stm = self.stm.flip();
+        self.ep_sq = None;
+        self.halfmoves += 1;
+        self.castle_rights.update(mv);
+        if piece == Piece::PAWN || mv.is_capture() {
+            self.halfmoves = 0;
+        }
+
+        true
+    }
+
+    pub fn from_fen(fen: &str) -> Self {
         let mut board = Self::new();
         let mut split = fen.split_whitespace();
 
@@ -642,7 +739,7 @@ impl Board {
         board
     }
 
-    fn as_fen(&self) -> String {
+    pub fn as_fen(&self) -> String {
         let mut res = String::new();
 
         let mut sq_num = 0;
@@ -661,12 +758,7 @@ impl Board {
                         empty = 0;
                     }
 
-                    for color in Color::LIST {
-                        if sq.as_bitboard().overlaps(self.all[color.as_index()]) {
-                            rank_string.push(piece.as_char(color));
-                            break;
-                        }
-                    }
+                    rank_string.push(piece.as_char(sq.color(self).unwrap()));
                 }
 
                 sq_num += 1
@@ -699,6 +791,25 @@ impl Board {
         res.push('1');
 
         res
+    }
+
+    pub fn print(&self) {
+        for i in 0..Square::CNT {
+            let sq = Square::new(i);
+            let piece = self.piece_on_sq(sq);
+
+            let mut ch = '.';
+            if piece != Piece::NONE {
+                ch = piece.as_char(sq.color(self).unwrap());
+            }
+
+            if (i + 1) % 8 == 0 {
+                println!("{ch} ");
+            } else {
+                print!("{ch} ");
+            }
+        }
+        println!();
     }
 }
 

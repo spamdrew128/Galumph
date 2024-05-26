@@ -1,4 +1,4 @@
-use crate::board_rep::{Piece, Square};
+use crate::board_rep::{Board, Color, Piece, Square};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
@@ -88,9 +88,35 @@ impl Move {
         self.flag() >= Flag::QUEEN_PROMO && self.flag() <= Flag::QUEEN_CAPTURE_PROMO
     }
 
+    pub fn is_promo(self) -> bool {
+        // very inefficient so probably avoid where speed matters :p
+        self.flag() >= Flag::QUEEN_CAPTURE_PROMO
+            || (self.flag() >= Flag::KNIGHT_PROMO && self.flag() <= Flag::QUEEN_PROMO)
+    }
+
     pub fn promo_piece(self) -> Piece {
         let piece_bits = (self.0 & Self::PROMO_PIECE_BITFIELD) >> Self::PROMO_PIECE_OFFSET;
         Piece::new(piece_bits as u8)
+    }
+
+    pub fn as_string(self) -> String {
+        if self.is_null() {
+            return "NULL".to_owned();
+        }
+
+        let mut move_str = String::new();
+        move_str.push_str(self.from().as_string().as_str());
+        move_str.push_str(self.to().as_string().as_str());
+
+        if self.is_promo() {
+            move_str.push(self.promo_piece().as_char(Color::White));
+        }
+
+        move_str
+    }
+
+    pub fn is_pseudolegal(self, board: &Board) -> bool {
+        true
     }
 }
 
