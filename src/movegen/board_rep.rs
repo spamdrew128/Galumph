@@ -140,8 +140,8 @@ impl Square {
         let file_num = self.file();
         let rank_num = self.rank();
 
-        let file_char = (file_num + ('a' as u8)) as char;
-        let rank_char = (rank_num + ('1' as u8)) as char;
+        let file_char = char::from(file_num + 'a' as u8);
+        let rank_char = char::from(rank_num + '1' as u8);
 
         res.push(file_char);
         res.push(rank_char);
