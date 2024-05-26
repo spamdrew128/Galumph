@@ -10,4 +10,6 @@ mod movegen;
 mod perft;
 mod util_macros;
 
-fn main() {}
+fn main() {
+    perft::speed_test();
+}

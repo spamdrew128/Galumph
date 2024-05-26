@@ -20,6 +20,8 @@ pub struct ScoredMove {
 }
 
 impl ScoredMove {
+    const EMPTY: Self = Self::new();
+
     const fn new() -> Self {
         Self {
             mv: Move::NULL,
@@ -29,7 +31,7 @@ impl ScoredMove {
 }
 
 pub struct MovePicker {
-    list: [Move; Self::SIZE],
+    list: [ScoredMove; Self::SIZE],
     idx: usize,
     len: usize,
 }
@@ -38,19 +40,19 @@ impl MovePicker {
     const SIZE: usize = u8::MAX as usize;
 
     fn add(&mut self, mv: Move) {
-        self.list[self.len] = mv;
+        self.list[self.len].mv = mv;
         self.len += 1;
     }
 
     fn take(&mut self) -> Move {
-        let mv = self.list[self.idx];
+        let mv = self.list[self.idx].mv;
         self.idx += 1;
         mv
     }
 
     pub fn new(board: &Board) -> Self {
         let mut res = Self {
-            list: [Move::NULL; Self::SIZE],
+            list: [ScoredMove::EMPTY; Self::SIZE],
             idx: 0,
             len: 0,
         };
@@ -168,7 +170,7 @@ impl MovePicker {
 
     pub fn pick(&mut self) -> Option<Move> {
         if self.idx < self.len {
-            self.pick()
+            Some(self.take())
         } else {
             None
         }

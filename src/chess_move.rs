@@ -1,4 +1,4 @@
-use crate::board_rep::{Board, Color, Piece, Square};
+use crate::{attacks, board_rep::{Board, Color, Piece, Square}};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
@@ -109,10 +109,72 @@ impl Move {
         move_str.push_str(self.to().as_string().as_str());
 
         if self.is_promo() {
-            move_str.push(self.promo_piece().as_char(Color::White));
+            move_str.push(self.promo_piece().as_char(Color::Black));
         }
 
         move_str
+    }
+
+    pub fn from_str(mv_str: &str, board: &Board) -> Self {
+        let mut chars = mv_str.chars();
+        let from_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
+        let to_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
+        let promo = chars.next();
+
+        let from = Square::from_string(from_str.as_str()).unwrap();
+        let to = Square::from_string(to_str.as_str()).unwrap();
+        let piece = board.piece_on_sq(from);
+        let captured_piece = board.piece_on_sq(to);
+
+        let promo_flags = [
+            Flag::KNIGHT_PROMO,
+            Flag::BISHOP_PROMO,
+            Flag::ROOK_PROMO,
+            Flag::QUEEN_PROMO,
+        ];
+        let cap_promo_flags = [
+            Flag::KNIGHT_CAPTURE_PROMO,
+            Flag::BISHOP_CAPTURE_PROMO,
+            Flag::ROOK_CAPTURE_PROMO,
+            Flag::QUEEN_CAPTURE_PROMO,
+        ];
+
+        if piece == Piece::KING && (!attacks::king(from).overlaps(to.as_bitboard())) {
+            if to.file() >= from.file() {
+                return Self::new_ks_castle(from);
+            }
+            if to.file() <= from.file() {
+                return Self::new_qs_castle(from);
+            }
+        }
+
+        if board.promotable_pawns().overlaps(from.as_bitboard()) {
+            let promo_type = Piece::from_char(promo.unwrap()).unwrap();
+            let flag = if captured_piece == Piece::NONE {
+                promo_flags[promo_type.as_index()]
+            } else {
+                cap_promo_flags[promo_type.as_index()]
+            };
+            return Self::new(to, from, flag);
+        }
+
+        if piece == Piece::PAWN {
+            if let Some(ep_sq) = board.ep_sq {
+                if ep_sq == to {
+                    return Self::new(to, from, Flag::EP);
+                }
+            }
+
+            if from == to.double_push_sq() {
+                return Self::new(to, from, Flag::DOUBLE_PUSH);
+            }
+        }
+
+        if captured_piece == Piece::NONE {
+            Self::new(to, from, Flag::NONE)
+        } else {
+            Self::new(to, from, Flag::CAPTURE)
+        }
     }
 
     pub fn is_pseudolegal(self, board: &Board) -> bool {

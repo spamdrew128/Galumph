@@ -1,4 +1,4 @@
-use crate::{board_rep::START_FEN, movegen::MovePicker};
+use crate::{board_rep::{Square, START_FEN}, chess_move::Move, movegen::MovePicker};
 
 use super::board_rep::Board;
 
@@ -195,7 +195,7 @@ pub fn split_perft(fen: &str, depth: u16) {
 
     while let Some(mv) = picker.pick() {
         let mut new_board = board.clone();
-        if new_board.try_play_move(mv) {
+        if new_board.try_play_move(mv) {            
             let mut count = 0;
             perft(&new_board, depth - 1, &mut count);
             println!("{} - {}", mv.as_string(), count);
@@ -258,7 +258,19 @@ pub fn speed_test() {
 
 #[cfg(test)]
 mod tests {
-    use super::run_test_suite;
+    use crate::{board_rep::Board, chess_move::Move};
+
+    use super::{run_test_suite, speed_test, split_perft};
+
+    #[test]
+    #[ignore = "unneeded"]
+    fn test_fen() {
+        let fen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
+        let mut board = Board::from_fen(fen);
+        board.try_play_move(Move::from_str("a1a8", &board));
+
+        split_perft(&board.as_fen(), 1);
+    }
 
     #[test]
     #[ignore = "takes too long"]

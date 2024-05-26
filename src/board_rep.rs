@@ -44,6 +44,14 @@ impl Square {
         self.0 as usize
     }
 
+    pub const fn rank(self) -> u8 {
+        7 - self.0 / 8
+    }
+
+    pub const fn file(self) -> u8 {
+        self.0 % 8
+    }
+
     fn color(self, board: &Board) -> Option<Color> {
         for color in Color::LIST {
             if self.as_bitboard().overlaps(board.all[color.as_index()]) {
@@ -103,7 +111,7 @@ impl Square {
         Self(self.0 ^ 0b111000)
     }
 
-    fn from_string(s: &str) -> Option<Self> {
+   pub fn from_string(s: &str) -> Option<Self> {
         if s.len() != 2 {
             return None;
         }
@@ -126,8 +134,8 @@ impl Square {
     pub fn as_string(self) -> String {
         let mut res = String::new();
 
-        let file_num = self.0 % 8;
-        let rank_num = 7 - (self.0 / 8);
+        let file_num = self.file();
+        let rank_num = self.rank();
 
         let file_char = (file_num + ('a' as u8)) as char;
         let rank_char = (rank_num + ('1' as u8)) as char;
@@ -171,12 +179,12 @@ impl Bitboard {
     pub const A_FILE: Self = Self::new(0x0101010101010101);
     pub const H_FILE: Self = Self::new(0x8080808080808080);
 
-    pub const RANK_1: Self = Self::new(0x00000000000000ff);
-    pub const RANK_2: Self = Self::new(0x000000000000ff00);
-    pub const RANK_4: Self = Self::new(0x00000000ff000000);
-    pub const RANK_5: Self = Self::new(0x000000ff00000000);
-    pub const RANK_7: Self = Self::new(0x00ff000000000000);
-    pub const RANK_8: Self = Self::new(0xff00000000000000);
+    pub const RANK_1: Self = Self::new(0xff00000000000000);
+    pub const RANK_2: Self = Self::new(0x00ff000000000000);
+    pub const RANK_4: Self = Self::new(0x000000ff00000000);
+    pub const RANK_5: Self = Self::new(0x00000000ff000000);
+    pub const RANK_7: Self = Self::new(0x000000000000ff00);
+    pub const RANK_8: Self = Self::new(0x00000000000000ff);
 
     pub const fn new(data: u64) -> Self {
         Self(data)
@@ -367,7 +375,7 @@ impl Piece {
         self.0 as usize
     }
 
-    fn from_char(ch: char) -> Option<Self> {
+    pub fn from_char(ch: char) -> Option<Self> {
         match ch {
             'n' | 'N' => Some(Self::KNIGHT),
             'b' | 'B' => Some(Self::BISHOP),
@@ -447,9 +455,9 @@ impl CastleRights {
     const KS: [u8; Color::CNT as usize] = [Self::W_KS, Self::B_KS];
     const QS: [u8; Color::CNT as usize] = [Self::W_QS, Self::B_QS];
 
-    const KS_THRU: [Bitboard; Color::CNT as usize] = [bb_from_squares!(F1), bb_from_squares!(F8)];
-    const QS_THRU: [Bitboard; Color::CNT as usize] =
-        [bb_from_squares!(C1, D1), bb_from_squares!(C8, D8)];
+    const KS_SAFE: [Bitboard; Color::CNT as usize] = [bb_from_squares!(E1, F1), bb_from_squares!(E8, F8)];
+    const QS_SAFE: [Bitboard; Color::CNT as usize] =
+        [bb_from_squares!(C1, D1, E1), bb_from_squares!(C8, D8, E8)];
     const KS_OCC: [Bitboard; Color::CNT as usize] =
         [bb_from_squares!(F1, G1), bb_from_squares!(F8, G8)];
     const QS_OCC: [Bitboard; Color::CNT as usize] =
@@ -472,17 +480,17 @@ impl CastleRights {
 
     fn can_ks_castle(self, board: &Board) -> bool {
         let c = board.stm.as_index();
-        if self.0 & Self::KS[c] > 0 {
+        if self.0 & Self::KS[c] == 0 {
             return false;
         }
 
         let occ = board.occupied();
-        if (Self::KS_OCC[c] & occ).is_empty() {
+        if (Self::KS_OCC[c] & occ).not_empty() {
             return false;
         }
 
-        let ks_thru = Self::KS_THRU[board.stm.as_index()];
-        bitloop!(|sq| ks_thru, {
+        let ks_safe = Self::KS_SAFE[board.stm.as_index()];
+        bitloop!(|sq| ks_safe, {
             if sq.is_attacked(board) {
                 return false;
             }
@@ -493,17 +501,17 @@ impl CastleRights {
 
     fn can_qs_castle(self, board: &Board) -> bool {
         let c = board.stm.as_index();
-        if self.0 & Self::QS[c] > 0 {
+        if self.0 & Self::QS[c] == 0 {
             return false;
         }
 
         let occ = board.occupied();
-        if (Self::QS_OCC[c] & occ).is_empty() {
+        if (Self::QS_OCC[c] & occ).not_empty() {
             return false;
         }
 
-        let qs_thru = Self::QS_THRU[board.stm.as_index()];
-        bitloop!(|sq| qs_thru, {
+        let qs_safe = Self::QS_SAFE[board.stm.as_index()];
+        bitloop!(|sq| qs_safe, {
             if sq.is_attacked(board) {
                 return false;
             }
@@ -577,7 +585,7 @@ impl Board {
         }
     }
 
-    fn piece_on_sq(&self, sq: Square) -> Piece {
+    pub fn piece_on_sq(&self, sq: Square) -> Piece {
         let bitset = sq.as_bitboard();
         for piece in Piece::LIST {
             if bitset.overlaps(self.pieces[piece.as_index()]) {
@@ -638,12 +646,14 @@ impl Board {
         let from_bb = from_sq.as_bitboard();
         let piece = self.piece_on_sq(from_sq);
 
-        if mv.is_capture() {
+        if mv.is_capture() && mv.flag() != Flag::EP {
             let captured_piece = self.piece_on_sq(to_sq);
             self.toggle(to_bb, captured_piece, stm.flip());
         }
 
         self.toggle(to_bb | from_bb, piece, stm);
+
+        self.ep_sq = None;
 
         match mv.flag() {
             Flag::NONE | Flag::CAPTURE => {}
@@ -674,6 +684,7 @@ impl Board {
                     Piece::ROOK,
                     stm,
                 );
+                
             }
             Flag::EP => {
                 let opp_pawn_sq = to_sq.row_swap();
@@ -686,13 +697,12 @@ impl Board {
             }
         }
 
-        if self.king_sq().is_attacked(&self) {
+        if self.king_sq().is_attacked(self) {
             return false;
         }
 
         // update state
         self.stm = self.stm.flip();
-        self.ep_sq = None;
         self.halfmoves += 1;
         self.castle_rights.update(mv);
         if piece == Piece::PAWN || mv.is_capture() {
