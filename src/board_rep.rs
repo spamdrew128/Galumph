@@ -48,6 +48,22 @@ impl Square {
         Self(self.0 + count)
     }
 
+    pub const fn retreat(self, count: u8, color: Color) -> Self {
+        match color {
+            Color::White => Self::new(self.0 + (8 * count)),
+            Color::Black => Self::new(self.0 - (8 * count)),
+        }
+    }
+
+    pub const fn row_swap(self) -> Self {
+        // even rows become odd, odd rows become even
+        Self::new(self.0 ^ 0b1000)
+    }
+
+    pub const fn double_push_sq(self) -> Self {
+        Self::new(self.0 ^ 0b10000)
+    }
+
     fn is_attacked(self, board: &Board) -> bool {
         let opp_color = board.stm.flip();
         let occ = board.occupied();
@@ -138,8 +154,16 @@ pub struct Bitboard(u64);
 
 impl Bitboard {
     pub const EMPTY: Self = Self::new(0);
+
     pub const A_FILE: Self = Self::new(0x0101010101010101);
     pub const H_FILE: Self = Self::new(0x8080808080808080);
+
+    pub const RANK_1: Self = Self::new(0x00000000000000ff);
+    pub const RANK_2: Self = Self::new(0x000000000000ff00);
+    pub const RANK_4: Self = Self::new(0x00000000ff000000);
+    pub const RANK_5: Self = Self::new(0x000000ff00000000);
+    pub const RANK_7: Self = Self::new(0x00ff000000000000);
+    pub const RANK_8: Self = Self::new(0xff00000000000000);
 
     pub const fn new(data: u64) -> Self {
         Self(data)
@@ -438,7 +462,7 @@ impl CastleRights {
             return false;
         }
 
-        let mut ks_thru = Self::KS_THRU[board.stm.as_index()];
+        let ks_thru = Self::KS_THRU[board.stm.as_index()];
         bitloop!(|sq| ks_thru, {
             if sq.is_attacked(board) {
                 return false;
@@ -459,7 +483,7 @@ impl CastleRights {
             return false;
         }
 
-        let mut qs_thru = Self::QS_THRU[board.stm.as_index()];
+        let qs_thru = Self::QS_THRU[board.stm.as_index()];
         bitloop!(|sq| qs_thru, {
             if sq.is_attacked(board) {
                 return false;
@@ -469,7 +493,7 @@ impl CastleRights {
         true
     }
 
-    pub const fn as_index(self) -> usize {
+    const fn as_index(self) -> usize {
         self.0 as usize
     }
 
@@ -544,12 +568,41 @@ impl Board {
         Piece::NONE
     }
 
-    fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
+    fn us(&self) -> Bitboard {
+        self.all[self.stm as usize]
+    }
+
+    pub fn them(&self) -> Bitboard {
+        self.all[self.stm.flip() as usize]
+    }
+
+    pub fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
         self.all[color.as_index()] & self.pieces[piece.as_index()]
     }
 
-    fn occupied(&self) -> Bitboard {
+    pub fn occupied(&self) -> Bitboard {
         self.all[Color::White.as_index()] | self.all[Color::Black.as_index()]
+    }
+
+    pub fn promotable_pawns(&self) -> Bitboard {
+        let color = self.stm;
+        let pawns = self.piece_bb(Piece::PAWN, color);
+        match color {
+            Color::White => pawns & Bitboard::RANK_7,
+            Color::Black => pawns & Bitboard::RANK_2,
+        }
+    }
+
+    pub fn king_sq(&self) -> Square {
+        self.piece_bb(Piece::KING, self.stm).lsb()
+    }
+
+    pub fn can_ks_castle(&self) -> bool {
+        self.castle_rights.can_ks_castle(&self)
+    }
+
+    pub fn can_qs_castle(&self) -> bool {
+        self.castle_rights.can_qs_castle(&self)
     }
 
     fn from_fen(fen: &str) -> Self {
