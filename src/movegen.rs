@@ -1,4 +1,4 @@
-use crate::{board_rep::GameState, chess_move::Move};
+use crate::{board_rep::Board, chess_move::Move};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScoredMove {
@@ -27,5 +27,5 @@ impl MovePicker {
         todo!()
     }
 
-    fn gen_moves(state: &GameState) {}
+    fn gen_moves(board: &Board) {}
 }

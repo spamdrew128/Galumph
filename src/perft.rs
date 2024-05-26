@@ -1,4 +1,4 @@
-use super::board_rep::GameState;
+use super::board_rep::Board;
 
 pub struct PerftTest {
     pub fen: &'static str,

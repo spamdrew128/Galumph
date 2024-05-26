@@ -1,4 +1,4 @@
-use crate::{bb_from_squares, tuple_constants_enum};
+use crate::{attacks, bb_from_squares, bitloop, chess_move::Move, tuple_constants_enum};
 use std::{
     char,
     ops::{BitAnd, BitOr, BitOrAssign, Not, Shl, Shr},
@@ -46,6 +46,28 @@ impl Square {
 
     pub const fn right(self, count: u8) -> Self {
         Self(self.0 + count)
+    }
+
+    fn is_attacked(self, board: &Board) -> bool {
+        let opp_color = board.stm.flip();
+        let occ = board.occupied();
+
+        let opp_king = board.piece_bb(Piece::KING, opp_color);
+        let opp_knights = board.piece_bb(Piece::KNIGHT, opp_color);
+        let opp_pawns = board.piece_bb(Piece::PAWN, opp_color);
+        let opp_bishops = board.piece_bb(Piece::BISHOP, opp_color);
+        let opp_rooks = board.piece_bb(Piece::ROOK, opp_color);
+        let opp_queens = board.piece_bb(Piece::QUEEN, opp_color);
+
+        let hv_sliders = opp_rooks | opp_queens;
+        let d_sliders = opp_bishops | opp_queens;
+
+        ((attacks::king(self) & opp_king)
+            | (attacks::knight(self) & opp_knights)
+            | (attacks::pawn(self, board.stm) & opp_pawns)
+            | (attacks::rook(self, occ) & hv_sliders)
+            | (attacks::bishop(self, occ) & d_sliders))
+            .not_empty()
     }
 
     pub const fn mirror(self) -> Self {
@@ -379,6 +401,8 @@ impl CastleRights {
     const W_QS: u8 = 0b0010;
     const B_KS: u8 = 0b0100;
     const B_QS: u8 = 0b1000;
+    const KS: [u8; Color::CNT as usize] = [Self::W_KS, Self::B_KS];
+    const QS: [u8; Color::CNT as usize] = [Self::W_QS, Self::B_QS];
 
     const KS_THRU: [Bitboard; Color::CNT as usize] = [bb_from_squares!(F1), bb_from_squares!(F8)];
     const QS_THRU: [Bitboard; Color::CNT as usize] =
@@ -401,6 +425,56 @@ impl CastleRights {
 
     fn new() -> Self {
         Self(0)
+    }
+
+    fn can_ks_castle(self, board: &Board) -> bool {
+        let c = board.stm.as_index();
+        if self.0 & Self::KS[c] > 0 {
+            return false;
+        }
+
+        let occ = board.occupied();
+        if (Self::KS_OCC[c] & occ).is_empty() {
+            return false;
+        }
+
+        let mut ks_thru = Self::KS_THRU[board.stm.as_index()];
+        bitloop!(|sq| ks_thru, {
+            if sq.is_attacked(board) {
+                return false;
+            }
+        });
+
+        true
+    }
+
+    fn can_qs_castle(self, board: &Board) -> bool {
+        let c = board.stm.as_index();
+        if self.0 & Self::QS[c] > 0 {
+            return false;
+        }
+
+        let occ = board.occupied();
+        if (Self::QS_OCC[c] & occ).is_empty() {
+            return false;
+        }
+
+        let mut qs_thru = Self::QS_THRU[board.stm.as_index()];
+        bitloop!(|sq| qs_thru, {
+            if sq.is_attacked(board) {
+                return false;
+            }
+        });
+
+        true
+    }
+
+    pub const fn as_index(self) -> usize {
+        self.0 as usize
+    }
+
+    fn update(&mut self, mv: Move) {
+        self.0 &= Self::UPDATE_MASKS[mv.from().as_index()] & Self::UPDATE_MASKS[mv.to().as_index()];
     }
 
     fn from_str(s: &str) -> Self {
@@ -437,7 +511,7 @@ impl CastleRights {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct GameState {
+pub struct Board {
     pub stm: Color,
     pub all: [Bitboard; Color::CNT as usize],
     pub pieces: [Bitboard; Piece::CNT as usize],
@@ -448,7 +522,7 @@ pub struct GameState {
 
 pub const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0";
 
-impl GameState {
+impl Board {
     fn new() -> Self {
         Self {
             stm: Color::White,
@@ -470,8 +544,16 @@ impl GameState {
         Piece::NONE
     }
 
+    fn piece_bb(&self, piece: Piece, color: Color) -> Bitboard {
+        self.all[color.as_index()] & self.pieces[piece.as_index()]
+    }
+
+    fn occupied(&self) -> Bitboard {
+        self.all[Color::White.as_index()] | self.all[Color::Black.as_index()]
+    }
+
     fn from_fen(fen: &str) -> Self {
-        let mut state = Self::new();
+        let mut board = Self::new();
         let mut split = fen.split_whitespace();
 
         let piece_grid = split.next().unwrap();
@@ -489,8 +571,8 @@ impl GameState {
                 let bitset = Square::new(i).as_bitboard();
 
                 if let Some(piece) = Piece::from_char(ch) {
-                    state.all[ch.is_lowercase() as usize] |= bitset;
-                    state.pieces[piece.as_index()] |= bitset;
+                    board.all[ch.is_lowercase() as usize] |= bitset;
+                    board.pieces[piece.as_index()] |= bitset;
                     i += 1;
                 } else {
                     i += ch.to_digit(10).unwrap() as u8;
@@ -499,12 +581,12 @@ impl GameState {
         }
         assert_eq!(i, Square::CNT);
 
-        state.stm = Color::from_char(stm).unwrap();
-        state.castle_rights = CastleRights::from_str(castling);
-        state.ep_sq = Square::from_string(ep);
-        state.halfmoves = halfmoves.parse::<u16>().unwrap();
+        board.stm = Color::from_char(stm).unwrap();
+        board.castle_rights = CastleRights::from_str(castling);
+        board.ep_sq = Square::from_string(ep);
+        board.halfmoves = halfmoves.parse::<u16>().unwrap();
 
-        state
+        board
     }
 
     fn as_fen(&self) -> String {
@@ -570,11 +652,9 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board_rep::{Direction, GameState, Square},
+        board_rep::{Board, Direction, Square},
         perft,
     };
-
-    use super::Bitboard;
 
     #[test]
     fn shifting_test() {
@@ -592,7 +672,7 @@ mod tests {
         let test_postions = perft::test_postions();
         for pos in test_postions {
             let fen = pos.fen;
-            assert_eq!(GameState::from_fen(fen).as_fen(), fen);
+            assert_eq!(Board::from_fen(fen).as_fen(), fen);
         }
     }
 }
