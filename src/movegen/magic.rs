@@ -1,6 +1,6 @@
-use crate::{
+use crate::movegen::{
     board_rep::{Bitboard, Direction, Square},
-    magic_tables::{BISHOP_MAGICS, ROOK_MAGICS},
+    magic_tables::{self, BISHOP_MAGICS, ROOK_MAGICS},
 };
 
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
@@ -43,7 +43,7 @@ impl MagicEntry {
 pub struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
-    hash_table: [Bitboard; crate::magic_tables::TABLE_SIZE],
+    hash_table: [Bitboard; magic_tables::TABLE_SIZE],
 }
 
 const fn generate_mask(sq: Square, directions: &[Direction; 4]) -> Bitboard {
@@ -91,7 +91,7 @@ impl MagicHashTable {
     pub const fn construct() -> Self {
         let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
         let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut hash_table = [Bitboard::EMPTY; crate::magic_tables::TABLE_SIZE];
+        let mut hash_table = [Bitboard::EMPTY; magic_tables::TABLE_SIZE];
 
         let mut offset = 0;
 
@@ -157,7 +157,7 @@ impl MagicHashTable {
             i += 1;
         }
 
-        assert!(offset == crate::magic_tables::TABLE_SIZE);
+        assert!(offset == magic_tables::TABLE_SIZE);
 
         Self {
             rook_entries,
@@ -181,7 +181,7 @@ impl MagicHashTable {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::movegen::{
         attacks,
         board_rep::{Bitboard, Square},
     };

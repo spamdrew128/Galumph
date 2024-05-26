@@ -1,6 +1,9 @@
 use crate::{
-    attacks, bb_from_squares, bitloop,
-    chess_move::{Flag, Move},
+    bb_from_squares, bitloop,
+    movegen::{
+        attacks,
+        chess_move::{Flag, Move},
+    },
     tuple_constants_enum,
 };
 use std::{
@@ -111,7 +114,7 @@ impl Square {
         Self(self.0 ^ 0b111000)
     }
 
-   pub fn from_string(s: &str) -> Option<Self> {
+    pub fn from_string(s: &str) -> Option<Self> {
         if s.len() != 2 {
             return None;
         }
@@ -455,7 +458,8 @@ impl CastleRights {
     const KS: [u8; Color::CNT as usize] = [Self::W_KS, Self::B_KS];
     const QS: [u8; Color::CNT as usize] = [Self::W_QS, Self::B_QS];
 
-    const KS_SAFE: [Bitboard; Color::CNT as usize] = [bb_from_squares!(E1, F1), bb_from_squares!(E8, F8)];
+    const KS_SAFE: [Bitboard; Color::CNT as usize] =
+        [bb_from_squares!(E1, F1), bb_from_squares!(E8, F8)];
     const QS_SAFE: [Bitboard; Color::CNT as usize] =
         [bb_from_squares!(C1, D1, E1), bb_from_squares!(C8, D8, E8)];
     const KS_OCC: [Bitboard; Color::CNT as usize] =
@@ -684,7 +688,6 @@ impl Board {
                     Piece::ROOK,
                     stm,
                 );
-                
             }
             Flag::EP => {
                 let opp_pawn_sq = to_sq.row_swap();
@@ -826,8 +829,8 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use crate::{
-        board_rep::{Board, Direction, Square},
-        perft,
+        movegen::board_rep::{Board, Direction, Square},
+        movegen::perft,
     };
 
     #[test]
