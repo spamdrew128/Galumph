@@ -11,3 +11,23 @@ macro_rules! tuple_constants_enum {
         tuple_constants_enum!($t, $val + 1, $($n),*);
     };
 }
+
+#[macro_export]
+macro_rules! bb_from_squares {
+    ($($sq:ident),*) => {{
+        let mut result = Bitboard::EMPTY;
+        $(result = result.or(Square::$sq.as_bitboard());)*
+        result
+    }};
+}
+
+#[macro_export]
+macro_rules! bitloop {
+    (|$sq:ident| $bb:ident, $body:expr) => {{
+        let mut $bb = $bb;
+        while $bb.not_empty() {
+            let $sq: Square = $bb.pop_lsb();
+            $body
+        }
+    }};
+}

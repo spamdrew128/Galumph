@@ -82,3 +82,17 @@ pub fn queen(sq: Square, occupied: Bitboard) -> Bitboard {
 pub fn pawn(sq: Square, color: Color) -> Bitboard {
     PAWN_ATTACKS[color.as_index()][sq.as_index()]
 }
+
+pub fn pawn_single_push(pawns: Bitboard, occ: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => pawns.shift(Direction::N, 1) & !occ,
+        Color::Black => pawns.shift(Direction::S, 1) & !occ,
+    }
+}
+
+pub fn pawn_double_push(single_pushes: Bitboard, occ: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => single_pushes.shift(Direction::N, 1) & !occ & Bitboard::RANK_4,
+        Color::Black => single_pushes.shift(Direction::S, 1) & !occ & Bitboard::RANK_5,
+    }
+}
