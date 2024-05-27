@@ -4,19 +4,28 @@ use crate::{
         chess_move::Move,
     },
     search::search_manager::{Depth, Milliseconds, Nodes},
+    uci::{
+        setoption::{HashMb, Overhead, Threads},
+        uci_handler::kill_program,
+    },
 };
 
 #[derive(Debug, Default, PartialEq)]
 pub enum UciCommand {
     #[default]
-    None,
+    Unsupported,
+    Stop,
+    Quit,
     Uci,
     IsReady,
     UciNewGame,
     Position(Board),
     Go(Vec<GoArg>),
-    Stop,
-    Quit,
+
+    // setoptions
+    SetOptionOverHead(u32),
+    SetOptionHashMb(u32),
+    SetOptionThreads(u32),
 }
 
 #[derive(Debug, PartialEq)]
@@ -29,10 +38,6 @@ pub enum GoArg {
     Depth(Depth),
     MovesToGo(u32),
     Infinite,
-}
-
-fn kill_program() {
-    std::process::exit(0);
 }
 
 fn get_stdin() -> String {
@@ -124,6 +129,26 @@ impl UciCommand {
 
                     arglist.push(next_arg);
                 }
+
+                res = UciCommand::Go(arglist);
+            }
+            "setoption" => {
+                expect_str(tokens.next())?;
+                let id = expect_str(tokens.next())?;
+                expect_str(tokens.next())?;
+
+                res = match id {
+                    "Overhead" => UciCommand::SetOptionOverHead(
+                        parse_nonzero!(tokens, u32)?.clamp(Overhead::MIN, Overhead::MAX),
+                    ),
+                    "HashMb" => UciCommand::SetOptionHashMb(
+                        parse_nonzero!(tokens, u32)?.clamp(HashMb::MIN, HashMb::MAX),
+                    ),
+                    "Threads" => UciCommand::SetOptionThreads(
+                        parse_nonzero!(tokens, u32)?.clamp(Threads::MIN, Threads::MAX),
+                    ),
+                    _ => UciCommand::Unsupported,
+                };
             }
             _ => (),
         };
