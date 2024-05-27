@@ -267,7 +267,7 @@ mod tests {
     fn test_fen() {
         let fen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
         let mut board = Board::from_fen(fen);
-        board.try_play_move(Move::from_str("a1a8", &board));
+        board.try_play_move(Move::from_str("a1a8", &board).unwrap());
 
         split_perft(&board.as_fen(), 1);
     }
