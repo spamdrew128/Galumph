@@ -241,13 +241,18 @@ pub fn run_test_suite() {
 #[allow(clippy::cast_precision_loss)]
 #[allow(dead_code)]
 pub fn speed_test() {
-    let board = Board::from_fen(START_FEN);
-    let timer = std::time::Instant::now();
     let mut count = 0;
+    let mut elapsed = 0.0;
 
-    perft(&board, 6, &mut count);
+    for _ in 0..10 {
+        let board = Board::from_fen(START_FEN);
+        let timer = std::time::Instant::now();
 
-    let elapsed = timer.elapsed().as_secs_f64();
+        perft(&board, 6, &mut count);
+
+        elapsed += timer.elapsed().as_secs_f64();
+    }
+
     println!(
         "{} Nodes in {} seconds\n{} MNPS",
         count,
