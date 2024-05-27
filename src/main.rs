@@ -8,5 +8,9 @@ mod util_macros;
 
 fn main() {
     movegen::perft::speed_test();
-    let _uci_handler = uci::uci_handler::UciHandler::new();
+    let mut uci_handler = uci::uci_handler::UciHandler::new();
+
+    loop {
+        uci_handler.respond();
+    }
 }

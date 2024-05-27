@@ -1,4 +1,11 @@
-use crate::{search::search_manager::SearchManager, uci::uci_input::UciCommand};
+use crate::{
+    search::search_manager::SearchManager,
+    uci::{
+        constants::{AUTHOR, NAME, VERSION},
+        setoption::display_options,
+        uci_input::UciCommand,
+    },
+};
 
 pub fn kill_program() {
     std::process::exit(0);
@@ -20,7 +27,14 @@ impl UciHandler {
 
         use UciCommand::*;
         match command {
-            _ => (),
+            Quit => kill_program(),
+            Uci => {
+                println!("id name {} v{}", NAME, VERSION);
+                println!("id author {}", AUTHOR);
+                display_options();
+                println!("uciok");
+            }
+            _ => println!("Unrecognized Command"),
         };
     }
 }
