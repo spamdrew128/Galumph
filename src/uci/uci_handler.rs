@@ -34,6 +34,10 @@ impl UciHandler {
                 display_options();
                 println!("uciok");
             }
+            IsReady => println!("readyok"),
+            UciNewGame => self.search_manager = SearchManager::new(),
+            Position(board) => self.search_manager.update_board(&board),
+            Go(_) => {}
             _ => println!("Unrecognized Command"),
         };
     }

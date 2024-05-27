@@ -19,6 +19,10 @@ impl SearchManager {
             board: Board::from_fen(START_FEN),
         }
     }
+
+    pub fn update_board(&mut self, board: &Board) {
+        self.board = board.clone();
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
