@@ -11,6 +11,27 @@ macro_rules! new_option {
     };
 }
 
+macro_rules! option_string {
+    ($($opt:ident),*) => {{
+        let mut res = String::new();
+        $(
+            res.push_str(
+                format!("option name {} type spin default {} min {} max {}\n",
+                $opt::STR,
+                $opt::DEFAULT,
+                $opt::MIN,
+                $opt::MAX).as_str()
+            );
+        )*
+        res
+    }};
+}
+
 new_option!(Overhead, 25, 1, 1000, "Overhead");
 new_option!(HashMb, 25, 1, 8192, "HashMb");
 new_option!(Threads, 1, 1, 128, "Threads");
+
+pub fn display_options() {
+    let options = option_string!(Overhead, HashMb, Threads);
+    println!("{options}");
+}
