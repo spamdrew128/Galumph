@@ -138,13 +138,13 @@ impl UciCommand {
                 expect_str(tokens.next())?;
 
                 res = match id {
-                    "Overhead" => UciCommand::SetOptionOverHead(
+                    Overhead::STR => UciCommand::SetOptionOverHead(
                         parse_nonzero!(tokens, u32)?.clamp(Overhead::MIN, Overhead::MAX),
                     ),
-                    "HashMb" => UciCommand::SetOptionHashMb(
+                    HashMb::STR => UciCommand::SetOptionHashMb(
                         parse_nonzero!(tokens, u32)?.clamp(HashMb::MIN, HashMb::MAX),
                     ),
-                    "Threads" => UciCommand::SetOptionThreads(
+                    Threads::STR => UciCommand::SetOptionThreads(
                         parse_nonzero!(tokens, u32)?.clamp(Threads::MIN, Threads::MAX),
                     ),
                     _ => UciCommand::Unsupported,
