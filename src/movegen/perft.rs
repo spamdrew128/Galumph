@@ -244,14 +244,12 @@ pub fn speed_test() {
     let mut count = 0;
     let mut elapsed = 0.0;
 
-    for _ in 0..10 {
-        let board = Board::from_fen(START_FEN);
-        let timer = std::time::Instant::now();
+    let board = Board::from_fen(START_FEN);
+    let timer = std::time::Instant::now();
 
-        perft(&board, 6, &mut count);
+    perft(&board, 6, &mut count);
 
-        elapsed += timer.elapsed().as_secs_f64();
-    }
+    elapsed += timer.elapsed().as_secs_f64();
 
     println!(
         "{} Nodes in {} seconds\n{} MNPS",
