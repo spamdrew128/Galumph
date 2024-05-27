@@ -21,6 +21,7 @@ pub enum UciCommand {
 
 #[derive(Debug, PartialEq)]
 pub enum GoArg {
+    Unsupported,
     Time(Color, Milliseconds),
     Inc(Color, Milliseconds),
     MoveTime(Milliseconds),
@@ -108,46 +109,20 @@ impl UciCommand {
             "go" => {
                 let mut arglist = vec![];
                 while let Some(arg) = tokens.next() {
-                    match arg {
-                        "wtime" => {
-                            arglist.push(GoArg::Time(
-                                Color::White,
-                                parse_nonzero!(tokens, Milliseconds)?,
-                            ));
-                        }
-                        "btime" => {
-                            arglist.push(GoArg::Time(
-                                Color::Black,
-                                parse_nonzero!(tokens, Milliseconds)?,
-                            ));
-                        }
-                        "winc" => {
-                            arglist.push(GoArg::Inc(
-                                Color::White,
-                                parse_nonzero!(tokens, Milliseconds)?,
-                            ));
-                        }
-                        "binc" => {
-                            arglist.push(GoArg::Inc(
-                                Color::Black,
-                                parse_nonzero!(tokens, Milliseconds)?,
-                            ));
-                        }
-                        "movetime" => {
-                            arglist.push(GoArg::MoveTime(parse_nonzero!(tokens, Milliseconds)?));
-                        }
-                        "movestogo" => {
-                            arglist.push(GoArg::MovesToGo(parse_nonzero!(tokens, u32)?));
-                        }
-                        "depth" => {
-                            arglist.push(GoArg::Depth(parse_nonzero!(tokens, Depth)?));
-                        }
-                        "nodes" => {
-                            arglist.push(GoArg::Nodes(parse_nonzero!(tokens, Nodes)?));
-                        }
-                        "infinite" => arglist.push(GoArg::Infinite),
-                        _ => (),
-                    }
+                    let next_arg = match arg {
+                        "wtime" => GoArg::Time(Color::White, parse_nonzero!(tokens, Milliseconds)?),
+                        "btime" => GoArg::Time(Color::Black, parse_nonzero!(tokens, Milliseconds)?),
+                        "winc" => GoArg::Inc(Color::White, parse_nonzero!(tokens, Milliseconds)?),
+                        "binc" => GoArg::Inc(Color::Black, parse_nonzero!(tokens, Milliseconds)?),
+                        "movetime" => GoArg::MoveTime(parse_nonzero!(tokens, Milliseconds)?),
+                        "movestogo" => GoArg::MovesToGo(parse_nonzero!(tokens, u32)?),
+                        "depth" => GoArg::Depth(parse_nonzero!(tokens, Depth)?),
+                        "nodes" => GoArg::Nodes(parse_nonzero!(tokens, Nodes)?),
+                        "infinite" => GoArg::Infinite,
+                        _ => GoArg::Unsupported,
+                    };
+
+                    arglist.push(next_arg);
                 }
             }
             _ => (),
