@@ -118,14 +118,24 @@ impl Move {
         move_str
     }
 
-    pub fn from_str(mv_str: &str, board: &Board) -> Self {
+    pub fn from_str(mv_str: &str, board: &Board) -> Option<Self> {
+        if mv_str.len() > 5 || mv_str.len() < 4 {
+            return None;
+        }
+
         let mut chars = mv_str.chars();
         let from_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
         let to_str = format!("{}{}", chars.next().unwrap(), chars.next().unwrap());
         let promo = chars.next();
 
-        let from = Square::from_string(from_str.as_str()).unwrap();
-        let to = Square::from_string(to_str.as_str()).unwrap();
+        let from = Square::from_string(from_str.as_str());
+        let to = Square::from_string(to_str.as_str());
+        if from == None || to == None {
+            return None;
+        }
+
+        let from = from.unwrap();
+        let to = to.unwrap();
         let piece = board.piece_on_sq(from);
         let captured_piece = board.piece_on_sq(to);
 
@@ -144,10 +154,10 @@ impl Move {
 
         if piece == Piece::KING && (!attacks::king(from).overlaps(to.as_bitboard())) {
             if to.file() >= from.file() {
-                return Self::new_ks_castle(from);
+                return Some(Self::new_ks_castle(from));
             }
             if to.file() <= from.file() {
-                return Self::new_qs_castle(from);
+                return Some(Self::new_qs_castle(from));
             }
         }
 
@@ -158,25 +168,25 @@ impl Move {
             } else {
                 cap_promo_flags[promo_type.as_index()]
             };
-            return Self::new(to, from, flag);
+            return Some(Self::new(to, from, flag));
         }
 
         if piece == Piece::PAWN {
             if let Some(ep_sq) = board.ep_sq {
                 if ep_sq == to {
-                    return Self::new(to, from, Flag::EP);
+                    return Some(Self::new(to, from, Flag::EP));
                 }
             }
 
             if from == to.double_push_sq() {
-                return Self::new(to, from, Flag::DOUBLE_PUSH);
+                return Some(Self::new(to, from, Flag::DOUBLE_PUSH));
             }
         }
 
         if captured_piece == Piece::NONE {
-            Self::new(to, from, Flag::NONE)
+            Some(Self::new(to, from, Flag::NONE))
         } else {
-            Self::new(to, from, Flag::CAPTURE)
+            Some(Self::new(to, from, Flag::CAPTURE))
         }
     }
 

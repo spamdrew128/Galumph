@@ -115,6 +115,11 @@ impl Square {
     }
 
     pub fn from_string(s: &str) -> Option<Self> {
+        fn in_range(c: char, min: char, max: char) -> bool {
+            let c_num = c as u8;
+            c_num >= min as u8 && c_num <= max as u8
+        }
+
         if s.len() != 2 {
             return None;
         }
@@ -123,15 +128,14 @@ impl Square {
         let file_char = chars.next().unwrap().to_ascii_lowercase();
         let rank_char = chars.next().unwrap();
 
-        let file_num: u8 = (file_char as u8) - ('a' as u8);
-        let rank_num: u8 = 7 - ((rank_char as u8) - ('1' as u8));
-        let pos = rank_num * 8 + file_num;
-
-        if pos >= Square::CNT {
+        if !in_range(file_char, 'a', 'h') || !in_range(rank_char, '1', '8') {
             return None;
         }
 
-        Some(Square(pos))
+        let file_num: u8 = (file_char as u8) - ('a' as u8);
+        let rank_num: u8 = 7 - ((rank_char as u8) - ('1' as u8));
+
+        Some(Square(rank_num * 8 + file_num))
     }
 
     pub fn as_string(self) -> String {
@@ -140,8 +144,8 @@ impl Square {
         let file_num = self.file();
         let rank_num = self.rank();
 
-        let file_char = (file_num + ('a' as u8)) as char;
-        let rank_char = (rank_num + ('1' as u8)) as char;
+        let file_char = char::from(file_num + 'a' as u8);
+        let rank_char = char::from(rank_num + '1' as u8);
 
         res.push(file_char);
         res.push(rank_char);
