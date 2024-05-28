@@ -2,9 +2,7 @@ use crate::{evaluation::eval::material_diff, movegen::{
     board_rep::{Board, START_FEN},
     chess_move::Move,
     movegen::MovePicker,
-}, search::constants::INF};
-
-use super::constants::{Depth, EvalScore, Ply, MAX_PLY};
+}, search::constants::{Depth, EvalScore, Ply, EVAL_MAX, INF, MAX_PLY}};
 
 pub struct SearchManager {
     searcher: Searcher,
@@ -57,10 +55,13 @@ impl Searcher {
             return material_diff(board);
         }
 
+        let in_check = board.in_check();
+
         let mut best_score = -INF;
         let mut best_move = Move::NULL;
 
         let mut move_picker = MovePicker::new(board);
+        let mut moves_played = 0;
         while let Some(mv) = move_picker.pick() {
             let mut new_board = board.clone();
 
@@ -68,6 +69,7 @@ impl Searcher {
             if !is_legal {
                 continue;
             }
+            moves_played += 1;
 
             let score = -self.negamax(&new_board, depth - 1, ply + 1, -beta, -alpha);
 
@@ -83,6 +85,15 @@ impl Searcher {
                     break;
                 }
             }
+        }
+
+        if moves_played == 0 {
+            // either checkmate or stalemate
+            return if in_check {
+                -EVAL_MAX + i32::from(ply)
+            } else {
+                0
+            };
         }
 
         self.best_move = best_move; // remove this later when we have PV table

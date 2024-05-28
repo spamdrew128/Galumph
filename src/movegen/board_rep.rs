@@ -632,6 +632,10 @@ impl Board {
         self.piece_bb(Piece::KING, self.stm).lsb()
     }
 
+    pub fn in_check(&self) -> bool {
+        self.king_sq().is_attacked(self)
+    }
+
     pub fn can_ks_castle(&self) -> bool {
         self.castle_rights.can_ks_castle(&self)
     }
@@ -704,7 +708,7 @@ impl Board {
             }
         }
 
-        if self.king_sq().is_attacked(self) {
+        if self.in_check() {
             return false;
         }
 
