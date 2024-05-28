@@ -1,6 +1,6 @@
 use crate::movegen::{
     board_rep::{Board, START_FEN},
-    chess_move::Move,
+    chess_move::Move, movegen::MovePicker,
 };
 
 pub type Milliseconds = u128;
@@ -58,7 +58,26 @@ impl Searcher {
         ply: Ply,
         mut alpha: EvalScore,
         beta: EvalScore,
-    ) {
-        
+    ) -> EvalScore {
+        if depth == 0 || ply >= MAX_PLY {
+            return 0; // todo! eval
+        }
+
+        let mut best_score = -INF;
+        let mut best_move = Move::NULL;
+
+        let mut move_picker = MovePicker::new(board);
+        while let Some(mv) = move_picker.pick() {
+            let mut new_board = board.clone();
+
+            let is_legal = new_board.try_play_move(mv);
+            if !is_legal {
+                continue;
+            }
+
+            let score = self.negamax(&new_board, depth, ply, alpha, beta)
+        }
+
+        best_score
     }
 }
