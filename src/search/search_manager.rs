@@ -26,8 +26,7 @@ impl SearchManager {
     }
 
     pub fn start_search(&mut self) {
-        let _score = self.searcher.negamax(&self.board, 6, 0, -INF, INF);
-        println!("bestmove {}", self.searcher.best_move.as_string());
+        self.searcher.go(&self.board);
     }
 }
 
@@ -50,7 +49,6 @@ impl Searcher {
     fn go(&mut self, board: &Board) {
         let depth = 6;
         let score = self.negamax(board, depth, 0, -INF, INF);
-        println!("ji");
         self.report_search_info(score, depth);
         println!("bestmove {}", self.best_move.as_string());
     }
