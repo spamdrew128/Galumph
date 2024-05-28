@@ -1,8 +1,12 @@
-use crate::{evaluation::eval::material_diff, movegen::{
-    board_rep::{Board, START_FEN},
-    chess_move::Move,
-    movegen::MovePicker,
-}, search::constants::{Depth, EvalScore, Ply, EVAL_MAX, INF, MAX_PLY}};
+use crate::{
+    evaluation::eval::material_diff,
+    movegen::{
+        board_rep::{Board, START_FEN},
+        chess_move::Move,
+        movegen::MovePicker,
+    },
+    search::constants::{Depth, EvalScore, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_PLY},
+};
 
 pub struct SearchManager {
     searcher: Searcher,
@@ -43,6 +47,35 @@ impl Searcher {
         }
     }
 
+    fn go(&mut self, board: &Board) {
+        let depth = 6;
+        let score = self.negamax(board, depth, 0, -INF, INF);
+        println!("ji");
+        self.report_search_info(score, depth);
+        println!("bestmove {}", self.best_move.as_string());
+    }
+
+    fn report_search_info(&self, score: EvalScore, depth: Depth) {
+        let score_str = if score >= MATE_THRESHOLD {
+            let ply = EVAL_MAX - score;
+            let score_value = (ply + 1) / 2;
+
+            format!("mate {score_value}")
+        } else if score <= -MATE_THRESHOLD {
+            let ply = EVAL_MAX + score;
+            let score_value = (ply + 1) / 2;
+
+            format!("mate -{score_value}")
+        } else {
+            format!("cp {score}")
+        };
+
+        println!(
+            "info score {score_str} depth {depth} seldepth {}",
+            self.seldepth
+        );
+    }
+
     fn negamax(
         &mut self,
         board: &Board,
@@ -51,6 +84,8 @@ impl Searcher {
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
+        self.seldepth = self.seldepth.max(ply);
+
         if depth == 0 || ply >= MAX_PLY {
             return material_diff(board);
         }
