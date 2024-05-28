@@ -3,7 +3,7 @@ use crate::{
         board_rep::{Board, Color, START_FEN},
         chess_move::Move,
     },
-    search::search_manager::{Depth, Milliseconds, Nodes},
+    search::constants::{Depth, Milliseconds, Nodes},
     uci::{
         setoption::{HashMb, Overhead, Threads},
         uci_handler::kill_program,

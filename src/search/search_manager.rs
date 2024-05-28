@@ -1,19 +1,10 @@
-use crate::movegen::{
+use crate::{evaluation::eval::material_diff, movegen::{
     board_rep::{Board, START_FEN},
-    chess_move::Move, movegen::MovePicker,
-};
+    chess_move::Move,
+    movegen::MovePicker,
+}, search::constants::INF};
 
-pub type Milliseconds = u128;
-pub type Nodes = u64;
-pub type Depth = i8;
-pub type Ply = u8;
-const MAX_DEPTH: Depth = i8::MAX;
-pub const MAX_PLY: Ply = MAX_DEPTH as u8;
-
-pub type EvalScore = i32;
-pub const INF: EvalScore = (i16::MAX - 10) as i32;
-pub const EVAL_MAX: EvalScore = INF - 1;
-pub const MATE_THRESHOLD: EvalScore = EVAL_MAX - (MAX_PLY as i32);
+use super::constants::{Depth, EvalScore, Ply, MAX_PLY};
 
 pub struct SearchManager {
     searcher: Searcher,
@@ -32,7 +23,10 @@ impl SearchManager {
         self.board = board.clone();
     }
 
-    pub fn start_search(&mut self) {}
+    pub fn start_search(&mut self) {
+        let _score = self.searcher.negamax(&self.board, 6, 0, -INF, INF);
+        println!("bestmove {}", self.searcher.best_move.as_string());
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -54,13 +48,13 @@ impl Searcher {
     fn negamax(
         &mut self,
         board: &Board,
-        mut depth: Depth,
+        depth: Depth,
         ply: Ply,
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
         if depth == 0 || ply >= MAX_PLY {
-            return 0; // todo! eval
+            return material_diff(board);
         }
 
         let mut best_score = -INF;
@@ -75,9 +69,23 @@ impl Searcher {
                 continue;
             }
 
-            let score = self.negamax(&new_board, depth, ply, alpha, beta)
+            let score = -self.negamax(&new_board, depth - 1, ply + 1, -beta, -alpha);
+
+            if score > best_score {
+                best_score = score;
+
+                if score > alpha {
+                    best_move = mv;
+                    alpha = score;
+                }
+
+                if score >= beta {
+                    break;
+                }
+            }
         }
 
+        self.best_move = best_move; // remove this later when we have PV table
         best_score
     }
 }
