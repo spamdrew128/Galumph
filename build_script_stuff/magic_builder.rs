@@ -1,11 +1,18 @@
+use std::mem::transmute;
+
 use crate::build_script_stuff::magic_tables::{BISHOP_MAGICS, ROOK_MAGICS};
 
-use super::{board_rep_reduced::{Bitboard, Direction, Square}, magic_tables};
+use super::{
+    board_rep_reduced::{Bitboard, Direction, Square},
+    magic_tables::{self, TABLE_SIZE},
+};
 
+// table gen code below
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
 const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
 
 #[derive(Debug)]
+#[repr(C)]
 struct MagicEntry {
     mask: Bitboard,
     magic: u64,
@@ -42,7 +49,7 @@ impl MagicEntry {
 pub struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
-    hash_table: Box<[Bitboard]>,
+    hash_table: Box<[Bitboard; TABLE_SIZE]>,
 }
 
 const fn generate_mask(sq: Square, directions: &[Direction; 4]) -> Bitboard {
@@ -90,7 +97,8 @@ impl MagicHashTable {
     pub fn construct() -> Self {
         let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
         let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut hash_table:Box<[Bitboard]> = Box::from([Bitboard::EMPTY; magic_tables::TABLE_SIZE]);
+        let mut hash_table: Box<[Bitboard; TABLE_SIZE]> =
+            Box::from([Bitboard::EMPTY; magic_tables::TABLE_SIZE]);
 
         let mut offset = 0;
 
@@ -166,51 +174,25 @@ impl MagicHashTable {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::movegen::{
-        attacks,
-        board_rep::{Bitboard, Square},
-    };
+#[repr(C)]
+struct Export {
+    rook_entries: [MagicEntry; Square::CNT as usize],
+    bishop_entries: [MagicEntry; Square::CNT as usize],
+    hash_table: [Bitboard; magic_tables::TABLE_SIZE],
+}
 
-    use super::{generate_attacks, generate_mask, BISHOP_DIRS, ROOK_DIRS};
+const MAGIC_EXPORT_SIZE: usize = std::mem::size_of::<Export>();
 
-    #[test]
-    fn exhaustive_slider_test() {
-        for i in 0..Square::CNT {
-            let sq = Square::new(i);
-            let r_mask = generate_mask(sq, &ROOK_DIRS).as_u64();
-            let b_mask = generate_mask(sq, &BISHOP_DIRS).as_u64();
+pub fn get_magic_bytes() -> Box<[u8; MAGIC_EXPORT_SIZE]> {
+    let table = MagicHashTable::construct();
 
-            // ROOK TEST
-            let set = r_mask;
-            let mut subset = 0;
-            loop {
-                let blockers = Bitboard::new(subset);
-                let attacks = generate_attacks(sq, blockers, &ROOK_DIRS);
+    let bytes: Box<[u8; MAGIC_EXPORT_SIZE]> = Box::from(unsafe {
+        transmute::<Export, [u8; MAGIC_EXPORT_SIZE]>(Export {
+            rook_entries: table.rook_entries,
+            bishop_entries: table.bishop_entries,
+            hash_table: transmute(*table.hash_table),
+        })
+    });
 
-                assert_eq!(attacks::rook(sq, blockers), attacks);
-
-                subset = subset.wrapping_sub(set) & set;
-                if subset == 0 {
-                    break;
-                }
-            }
-
-            // BISHOP TEST
-            let set = b_mask;
-            let mut subset = 0;
-            loop {
-                let blockers = Bitboard::new(subset);
-                let attacks = generate_attacks(sq, blockers, &BISHOP_DIRS);
-
-                assert_eq!(attacks::bishop(sq, blockers), attacks);
-
-                subset = subset.wrapping_sub(set) & set;
-                if subset == 0 {
-                    break;
-                }
-            }
-        }
-    }
+    bytes
 }

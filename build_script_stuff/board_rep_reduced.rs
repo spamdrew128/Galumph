@@ -71,7 +71,6 @@ impl Square {
     pub const fn double_push_sq(self) -> Self {
         Self::new(self.0 ^ 0b10000)
     }
-
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
