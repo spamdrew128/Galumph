@@ -1,4 +1,4 @@
-use build_script_stuff::magic_builder:: get_magic_bytes;
+use build_script_stuff::magic_builder::get_magic_bytes;
 
 use std::fs::File;
 use std::io::BufWriter;
@@ -6,7 +6,6 @@ use std::io::Write;
 use std::path::PathBuf;
 
 mod build_script_stuff;
-
 
 fn gen_output_file(name: &str, buf: &[u8]) {
     let mut out_dir: PathBuf = std::env::var("OUT_DIR").unwrap().into();

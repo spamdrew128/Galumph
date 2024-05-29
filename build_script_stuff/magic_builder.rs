@@ -15,10 +15,10 @@ const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW
 #[derive(Debug)]
 #[repr(C)]
 struct MagicEntry {
-    mask: Bitboard,
-    magic: u64,
     shift: u8,
     table_offset: usize,
+    magic: u64,
+    mask: Bitboard,
 }
 
 impl MagicEntry {
@@ -180,8 +180,6 @@ const MAGIC_EXPORT_SIZE: usize = std::mem::size_of::<MagicHashTable>();
 
 pub fn get_magic_bytes() -> Box<[u8; MAGIC_EXPORT_SIZE]> {
     let table: Box<MagicHashTable> = MagicHashTable::construct();
-    
-    unsafe {
-        transmute(table)
-    }
+
+    unsafe { transmute(table) }
 }

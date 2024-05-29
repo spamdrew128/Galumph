@@ -7,11 +7,12 @@ const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Dir
 const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
 
 #[derive(Debug)]
+#[repr(C)]
 struct MagicEntry {
-    mask: Bitboard,
-    magic: u64,
     shift: u8,
     table_offset: usize,
+    magic: u64,
+    mask: Bitboard,
 }
 
 impl MagicEntry {
@@ -37,6 +38,7 @@ impl MagicEntry {
     }
 }
 
+#[repr(C)]
 pub struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
