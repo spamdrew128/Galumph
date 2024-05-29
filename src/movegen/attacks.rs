@@ -56,8 +56,8 @@ const KING_ATTACKS: [Bitboard; Square::CNT as usize] = init_attacks!(|sq_bb| {
         .or(sq_bb.shift(Direction::NW, 1))
 });
 
-#[allow(long_running_const_eval)] // ABOUT 27 SECONDS LOL
-const MAGIC_HASH_TABLE: MagicHashTable = MagicHashTable::construct();
+const MAGIC_HASH_TABLE: MagicHashTable =
+    unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/magic_init.bin"))) };
 
 pub fn king(sq: Square) -> Bitboard {
     KING_ATTACKS[sq.as_index()]

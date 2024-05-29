@@ -1,17 +1,16 @@
-use crate::movegen::{
-    board_rep::{Bitboard, Direction, Square},
-    magic_tables::{self, BISHOP_MAGICS, ROOK_MAGICS},
-};
+use crate::movegen::board_rep::{Bitboard, Direction, Square};
 
+const TABLE_SIZE: usize = 107481;
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
 const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
 
 #[derive(Debug)]
+#[repr(C)]
 struct MagicEntry {
-    mask: Bitboard,
-    magic: u64,
     shift: u8,
     table_offset: usize,
+    magic: u64,
+    mask: Bitboard,
 }
 
 impl MagicEntry {
@@ -21,9 +20,6 @@ impl MagicEntry {
         shift: 0,
         table_offset: 0,
     };
-
-    // const R_SHIFT: u8 = Square::CNT - 12;
-    // const B_SHIFT: u8 = Square::CNT - 9;
 
     const fn new(mask: Bitboard, magic: u64, table_offset: usize) -> Self {
         let shift = Square::CNT - mask.popcount();
@@ -40,10 +36,11 @@ impl MagicEntry {
     }
 }
 
+#[repr(C)]
 pub struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
-    hash_table: [Bitboard; magic_tables::TABLE_SIZE],
+    hash_table: [Bitboard; TABLE_SIZE],
 }
 
 const fn generate_mask(sq: Square, directions: &[Direction; 4]) -> Bitboard {
@@ -88,84 +85,6 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 }
 
 impl MagicHashTable {
-    pub const fn construct() -> Self {
-        let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut hash_table = [Bitboard::EMPTY; magic_tables::TABLE_SIZE];
-
-        let mut offset = 0;
-
-        // rooks
-        let mut i = 0;
-        while i < Square::CNT {
-            let sq = Square::new(i);
-            let (magic, start, end) = ROOK_MAGICS[sq.as_index()];
-            let size = end - start;
-
-            rook_entries[sq.as_index()] =
-                MagicEntry::new(generate_mask(sq, &ROOK_DIRS), magic, offset);
-            offset += size;
-
-            // fill_rook_entries
-            let r_entry = &rook_entries[i as usize];
-            let set = r_entry.mask.as_u64();
-            let mut subset: u64 = 0;
-            loop {
-                let blockers = Bitboard::new(subset);
-                let index = r_entry.hash_index(blockers);
-                assert!(index < offset);
-
-                hash_table[index] = generate_attacks(sq, blockers, &ROOK_DIRS);
-
-                subset = subset.wrapping_sub(set) & set;
-                if subset == 0 {
-                    break;
-                }
-            }
-
-            i += 1;
-        }
-
-        // bishops
-        i = 0;
-        while i < Square::CNT {
-            let sq = Square::new(i);
-            let (magic, start, end) = BISHOP_MAGICS[sq.as_index()];
-            let size = end - start;
-
-            bishop_entries[sq.as_index()] =
-                MagicEntry::new(generate_mask(sq, &BISHOP_DIRS), magic, offset);
-            offset += size;
-
-            // bishop hash entries
-            let b_entry = &bishop_entries[i as usize];
-            let set = b_entry.mask.as_u64();
-            let mut subset: u64 = 0;
-            loop {
-                let blockers = Bitboard::new(subset);
-                let index = b_entry.hash_index(blockers);
-                assert!(index < offset);
-
-                hash_table[index] = generate_attacks(sq, blockers, &BISHOP_DIRS);
-
-                subset = subset.wrapping_sub(set) & set;
-                if subset == 0 {
-                    break;
-                }
-            }
-
-            i += 1;
-        }
-
-        assert!(offset == magic_tables::TABLE_SIZE);
-
-        Self {
-            rook_entries,
-            bishop_entries,
-            hash_table,
-        }
-    }
-
     pub fn rook_attack_set(&self, sq: Square, occupied: Bitboard) -> Bitboard {
         let entry = &self.rook_entries[sq.as_index()];
         let blockers = entry.mask & occupied;
