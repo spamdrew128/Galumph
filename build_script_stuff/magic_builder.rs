@@ -97,6 +97,7 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 
 impl MagicHashTable {
     pub fn construct() -> Box<Self> {
+        // TODO: find a less scuffed way to do this :p
         const ZEROED: MagicHashTable = MagicHashTable {
             rook_entries: [MagicEntry::EMPTY; Square::CNT as usize],
             bishop_entries: [MagicEntry::EMPTY; Square::CNT as usize],
