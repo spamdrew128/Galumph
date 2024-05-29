@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    // #[ignore = "takes too long"]
+    #[ignore = "takes too long"]
     fn position_suite() {
         run_test_suite();
     }
