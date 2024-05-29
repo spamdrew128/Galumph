@@ -37,7 +37,7 @@ impl UciHandler {
             IsReady => println!("readyok"),
             UciNewGame => self.search_manager = SearchManager::new(),
             Position(board) => self.search_manager.update_board(&board),
-            Go(_) => {}
+            Go(_) => self.search_manager.start_search(),
             _ => println!("Unrecognized Command"),
         };
     }
