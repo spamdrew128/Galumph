@@ -1,4 +1,3 @@
-use core::hash;
 use std::mem::transmute;
 
 use crate::build_script_stuff::magic_tables::{BISHOP_MAGICS, ROOK_MAGICS};
@@ -48,7 +47,7 @@ impl MagicEntry {
 }
 
 #[repr(C)]
-pub struct MagicHashTable {
+struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
     hash_table: [Bitboard; TABLE_SIZE],
@@ -96,7 +95,7 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 }
 
 impl MagicHashTable {
-    pub fn construct() -> Box<Self> {
+    fn construct() -> Box<Self> {
         // TODO: find a less scuffed way to do this :p
         const ZEROED: MagicHashTable = MagicHashTable {
             rook_entries: [MagicEntry::EMPTY; Square::CNT as usize],
