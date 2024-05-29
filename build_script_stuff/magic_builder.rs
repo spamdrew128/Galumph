@@ -1,7 +1,6 @@
-use crate::movegen::{
-    board_rep::{Bitboard, Direction, Square},
-    magic_tables::{self, BISHOP_MAGICS, ROOK_MAGICS},
-};
+use crate::build_script_stuff::magic_tables::{BISHOP_MAGICS, ROOK_MAGICS};
+
+use super::{board_rep_reduced::{Bitboard, Direction, Square}, magic_tables};
 
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
 const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
@@ -22,6 +21,9 @@ impl MagicEntry {
         table_offset: 0,
     };
 
+    // const R_SHIFT: u8 = Square::CNT - 12;
+    // const B_SHIFT: u8 = Square::CNT - 9;
+
     const fn new(mask: Bitboard, magic: u64, table_offset: usize) -> Self {
         let shift = Square::CNT - mask.popcount();
         Self {
@@ -40,7 +42,7 @@ impl MagicEntry {
 pub struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
-    hash_table: [Bitboard; magic_tables::TABLE_SIZE],
+    hash_table: Box<[Bitboard]>,
 }
 
 const fn generate_mask(sq: Square, directions: &[Direction; 4]) -> Bitboard {
@@ -85,10 +87,10 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 }
 
 impl MagicHashTable {
-    pub const fn construct() -> Self {
+    pub fn construct() -> Self {
         let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
         let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut hash_table = [Bitboard::EMPTY; magic_tables::TABLE_SIZE];
+        let mut hash_table:Box<[Bitboard]> = Box::from([Bitboard::EMPTY; magic_tables::TABLE_SIZE]);
 
         let mut offset = 0;
 
@@ -161,18 +163,6 @@ impl MagicHashTable {
             bishop_entries,
             hash_table,
         }
-    }
-
-    pub fn rook_attack_set(&self, sq: Square, occupied: Bitboard) -> Bitboard {
-        let entry = &self.rook_entries[sq.as_index()];
-        let blockers = entry.mask & occupied;
-        self.hash_table[entry.hash_index(blockers)]
-    }
-
-    pub fn bishop_attack_set(&self, sq: Square, occupied: Bitboard) -> Bitboard {
-        let entry = &self.bishop_entries[sq.as_index()];
-        let blockers = entry.mask & occupied;
-        self.hash_table[entry.hash_index(blockers)]
     }
 }
 
