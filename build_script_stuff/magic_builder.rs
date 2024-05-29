@@ -1,3 +1,4 @@
+use core::hash;
 use std::mem::transmute;
 
 use crate::build_script_stuff::magic_tables::{BISHOP_MAGICS, ROOK_MAGICS};
@@ -46,10 +47,11 @@ impl MagicEntry {
     }
 }
 
+#[repr(C)]
 pub struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
     bishop_entries: [MagicEntry; Square::CNT as usize],
-    hash_table: Box<[Bitboard; TABLE_SIZE]>,
+    hash_table: [Bitboard; TABLE_SIZE],
 }
 
 const fn generate_mask(sq: Square, directions: &[Direction; 4]) -> Bitboard {
@@ -94,11 +96,14 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 }
 
 impl MagicHashTable {
-    pub fn construct() -> Self {
-        let mut rook_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut bishop_entries = [MagicEntry::EMPTY; Square::CNT as usize];
-        let mut hash_table: Box<[Bitboard; TABLE_SIZE]> =
-            Box::from([Bitboard::EMPTY; magic_tables::TABLE_SIZE]);
+    pub fn construct() -> Box<Self> {
+        const ZEROED: MagicHashTable = MagicHashTable {
+            rook_entries: [MagicEntry::EMPTY; Square::CNT as usize],
+            bishop_entries: [MagicEntry::EMPTY; Square::CNT as usize],
+            hash_table: [Bitboard::EMPTY; magic_tables::TABLE_SIZE],
+        };
+
+        let mut res = Box::new(ZEROED);
 
         let mut offset = 0;
 
@@ -109,12 +114,12 @@ impl MagicHashTable {
             let (magic, start, end) = ROOK_MAGICS[sq.as_index()];
             let size = end - start;
 
-            rook_entries[sq.as_index()] =
+            res.rook_entries[sq.as_index()] =
                 MagicEntry::new(generate_mask(sq, &ROOK_DIRS), magic, offset);
             offset += size;
 
             // fill_rook_entries
-            let r_entry = &rook_entries[i as usize];
+            let r_entry = &res.rook_entries[i as usize];
             let set = r_entry.mask.as_u64();
             let mut subset: u64 = 0;
             loop {
@@ -122,7 +127,7 @@ impl MagicHashTable {
                 let index = r_entry.hash_index(blockers);
                 assert!(index < offset);
 
-                hash_table[index] = generate_attacks(sq, blockers, &ROOK_DIRS);
+                res.hash_table[index] = generate_attacks(sq, blockers, &ROOK_DIRS);
 
                 subset = subset.wrapping_sub(set) & set;
                 if subset == 0 {
@@ -140,12 +145,12 @@ impl MagicHashTable {
             let (magic, start, end) = BISHOP_MAGICS[sq.as_index()];
             let size = end - start;
 
-            bishop_entries[sq.as_index()] =
+            res.bishop_entries[sq.as_index()] =
                 MagicEntry::new(generate_mask(sq, &BISHOP_DIRS), magic, offset);
             offset += size;
 
             // bishop hash entries
-            let b_entry = &bishop_entries[i as usize];
+            let b_entry = &res.bishop_entries[i as usize];
             let set = b_entry.mask.as_u64();
             let mut subset: u64 = 0;
             loop {
@@ -153,7 +158,7 @@ impl MagicHashTable {
                 let index = b_entry.hash_index(blockers);
                 assert!(index < offset);
 
-                hash_table[index] = generate_attacks(sq, blockers, &BISHOP_DIRS);
+                res.hash_table[index] = generate_attacks(sq, blockers, &BISHOP_DIRS);
 
                 subset = subset.wrapping_sub(set) & set;
                 if subset == 0 {
@@ -166,33 +171,16 @@ impl MagicHashTable {
 
         assert!(offset == magic_tables::TABLE_SIZE);
 
-        Self {
-            rook_entries,
-            bishop_entries,
-            hash_table,
-        }
+        res
     }
 }
 
-#[repr(C)]
-struct Export {
-    rook_entries: [MagicEntry; Square::CNT as usize],
-    bishop_entries: [MagicEntry; Square::CNT as usize],
-    hash_table: [Bitboard; magic_tables::TABLE_SIZE],
-}
-
-const MAGIC_EXPORT_SIZE: usize = std::mem::size_of::<Export>();
+const MAGIC_EXPORT_SIZE: usize = std::mem::size_of::<MagicHashTable>();
 
 pub fn get_magic_bytes() -> Box<[u8; MAGIC_EXPORT_SIZE]> {
-    let table = MagicHashTable::construct();
-
-    let bytes: Box<[u8; MAGIC_EXPORT_SIZE]> = Box::from(unsafe {
-        transmute::<Export, [u8; MAGIC_EXPORT_SIZE]>(Export {
-            rook_entries: table.rook_entries,
-            bishop_entries: table.bishop_entries,
-            hash_table: transmute(*table.hash_table),
-        })
-    });
-
-    bytes
+    let table: Box<MagicHashTable> = MagicHashTable::construct();
+    
+    unsafe {
+        transmute(table)
+    }
 }
