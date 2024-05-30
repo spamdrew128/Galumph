@@ -1,5 +1,7 @@
+use std::thread;
+
 use crate::{
-    search::search_manager::{SearchConfig, SearchLimit, SearchManager},
+    search::search_manager::{self, SearchConfig, SearchLimit, SearchManager},
     uci::{
         constants::{AUTHOR, NAME, VERSION},
         setoption::display_options,
@@ -13,17 +15,49 @@ pub fn kill_program() {
 
 pub struct UciHandler {
     search_manager: SearchManager,
+    stored_command: Option<UciCommand>,
 }
 
 impl UciHandler {
     pub fn new() -> Self {
         Self {
             search_manager: SearchManager::new(),
+            stored_command: None,
+        }
+    }
+
+    fn respond_while_searching() -> Option<UciCommand> {
+        loop {
+            let command = UciCommand::recieve_valid();
+
+            use UciCommand::*;
+            match command {
+                IsReady => println!("readyok"),
+                Quit => kill_program(),
+                Stop => {
+                    search_manager::set_stop_flag();
+                    return None;
+                }
+                _ => {
+                    if search_manager::stop_flag_is_set() {
+                        return Some(command);
+                    }
+
+                    eprintln!("Cannot handle this command while searching");
+                }
+            }
         }
     }
 
     pub fn respond(&mut self) {
-        let command = UciCommand::recieve_valid();
+        let stored = self.stored_command.clone();
+        self.stored_command = None;
+
+        let command = if let Some(cmd) = stored {
+            cmd
+        } else {
+            UciCommand::recieve_valid()
+        };
 
         use UciCommand::*;
         match command {
@@ -45,20 +79,29 @@ impl UciHandler {
                         GoArg::Time(c, ms) => config.time[c.as_index()] = ms,
                         GoArg::Inc(c, ms) => config.inc[c.as_index()] = ms,
                         GoArg::MoveTime(ms) => config.limits.push(SearchLimit::MoveTime(ms)),
-                        GoArg::Nodes(nodes) => config.limits.push(SearchLimit::Nodes(nodes)), 
-                        GoArg::Depth(depth) => config.limits.push(SearchLimit::Depth(depth)), 
+                        GoArg::Nodes(nodes) => config.limits.push(SearchLimit::Nodes(nodes)),
+                        GoArg::Depth(depth) => config.limits.push(SearchLimit::Depth(depth)),
                         GoArg::MovesToGo(cnt) => config.moves_to_go = Some(cnt),
                         GoArg::Infinite => {
                             config = SearchConfig::new();
                             break;
                         }
-                        _ => println!("Unrecognized Go Arg"),
+                        _ => eprintln!("Unrecognized Go Arg"),
                     }
                 }
 
-                self.search_manager.start_search(&config);
+                search_manager::clear_stop_flag();
+
+                thread::scope(|s| {
+                    s.spawn(|| {
+                        self.search_manager.start_search(&config);
+                    });
+
+                    self.stored_command = Self::respond_while_searching();
+                });
             }
-            _ => println!("Unrecognized Command"),
+            Stop => eprintln!("Uneeded Stop: Not Searching"),
+            _ => eprintln!("Unrecognized Command"),
         };
     }
 }

@@ -1,4 +1,7 @@
-use std::vec;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    vec,
+};
 
 use crate::{
     evaluation::eval::material_diff,
@@ -11,6 +14,20 @@ use crate::{
         Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_PLY,
     },
 };
+
+static STOP_FLAG: AtomicBool = AtomicBool::new(false);
+
+pub fn stop_flag_is_set() -> bool {
+    STOP_FLAG.load(Ordering::Relaxed)
+}
+
+pub fn set_stop_flag() {
+    STOP_FLAG.store(true, Ordering::Relaxed);
+}
+
+pub fn clear_stop_flag() {
+    STOP_FLAG.store(false, Ordering::Relaxed);
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum SearchLimit {
@@ -80,7 +97,10 @@ impl Searcher {
         let depth = 6;
         let score = self.negamax(board, depth, 0, -INF, INF);
         self.report_search_info(score, depth);
+
         println!("bestmove {}", self.best_move.as_string());
+
+        set_stop_flag();
     }
 
     fn report_search_info(&self, score: EvalScore, depth: Depth) {
@@ -102,6 +122,10 @@ impl Searcher {
             "info score {score_str} depth {depth} seldepth {}",
             self.seldepth
         );
+    }
+
+    fn out_of_time(&self) -> bool {
+        return false;
     }
 
     fn negamax(
@@ -135,6 +159,11 @@ impl Searcher {
             moves_played += 1;
 
             let score = -self.negamax(&new_board, depth - 1, ply + 1, -beta, -alpha);
+
+            if stop_flag_is_set() || self.out_of_time() {
+                set_stop_flag();
+                return 0;
+            }
 
             if score > best_score {
                 best_score = score;
