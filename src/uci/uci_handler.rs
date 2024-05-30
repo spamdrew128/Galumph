@@ -1,9 +1,9 @@
 use crate::{
-    search::search_manager::SearchManager,
+    search::search_manager::{SearchConfig, SearchLimit, SearchManager},
     uci::{
         constants::{AUTHOR, NAME, VERSION},
         setoption::display_options,
-        uci_input::UciCommand,
+        uci_input::{GoArg, UciCommand},
     },
 };
 
@@ -37,7 +37,27 @@ impl UciHandler {
             IsReady => println!("readyok"),
             UciNewGame => self.search_manager = SearchManager::new(),
             Position(board) => self.search_manager.update_board(&board),
-            Go(_) => self.search_manager.start_search(),
+            Go(args) => {
+                let mut config = SearchConfig::new();
+
+                for arg in args {
+                    match arg {
+                        GoArg::Time(c, ms) => config.time[c.as_index()] = ms,
+                        GoArg::Inc(c, ms) => config.inc[c.as_index()] = ms,
+                        GoArg::MoveTime(ms) => config.limits.push(SearchLimit::MoveTime(ms)),
+                        GoArg::Nodes(nodes) => config.limits.push(SearchLimit::Nodes(nodes)), 
+                        GoArg::Depth(depth) => config.limits.push(SearchLimit::Depth(depth)), 
+                        GoArg::MovesToGo(cnt) => config.moves_to_go = Some(cnt),
+                        GoArg::Infinite => {
+                            config = SearchConfig::new();
+                            break;
+                        }
+                        _ => println!("Unrecognized Go Arg"),
+                    }
+                }
+
+                self.search_manager.start_search(&config);
+            }
             _ => println!("Unrecognized Command"),
         };
     }

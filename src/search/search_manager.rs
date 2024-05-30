@@ -1,7 +1,9 @@
+use std::vec;
+
 use crate::{
     evaluation::eval::material_diff,
     movegen::{
-        board_rep::{Board, START_FEN},
+        board_rep::{Board, Color, START_FEN},
         chess_move::Move,
         movegen::MovePicker,
     },
@@ -12,9 +14,28 @@ use crate::{
 
 #[derive(Debug, Copy, Clone)]
 pub enum SearchLimit {
-    Time(Milliseconds),
+    Standard,
+    MoveTime(Milliseconds),
     Depth(Depth),
     Nodes(Nodes),
+}
+
+pub struct SearchConfig {
+    pub limits: Vec<SearchLimit>,
+    pub time: [Milliseconds; Color::CNT as usize],
+    pub inc: [Milliseconds; Color::CNT as usize],
+    pub moves_to_go: Option<u32>,
+}
+
+impl SearchConfig {
+    pub const fn new() -> Self {
+        Self {
+            limits: vec![],
+            time: [0, 0],
+            inc: [0, 0],
+            moves_to_go: None,
+        }
+    }
 }
 
 pub struct SearchManager {
@@ -34,8 +55,8 @@ impl SearchManager {
         self.board = board.clone();
     }
 
-    pub fn start_search(&mut self, limits: &[SearchLimit]) {
-        self.searcher.go(&self.board, limits);
+    pub fn start_search(&mut self, config: &SearchConfig) {
+        self.searcher.go(&self.board, config);
     }
 }
 
@@ -55,7 +76,7 @@ impl Searcher {
         }
     }
 
-    fn go(&mut self, board: &Board, limits: &[SearchLimit]) {
+    fn go(&mut self, board: &Board, config: &SearchConfig) {
         let depth = 6;
         let score = self.negamax(board, depth, 0, -INF, INF);
         self.report_search_info(score, depth);
