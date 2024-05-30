@@ -5,8 +5,17 @@ use crate::{
         chess_move::Move,
         movegen::MovePicker,
     },
-    search::constants::{Depth, EvalScore, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_PLY},
+    search::constants::{
+        Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_PLY,
+    },
 };
+
+#[derive(Debug, Copy, Clone)]
+pub enum SearchLimit {
+    Time(Milliseconds),
+    Depth(Depth),
+    Nodes(Nodes),
+}
 
 pub struct SearchManager {
     searcher: Searcher,
@@ -25,8 +34,8 @@ impl SearchManager {
         self.board = board.clone();
     }
 
-    pub fn start_search(&mut self) {
-        self.searcher.go(&self.board);
+    pub fn start_search(&mut self, limits: &[SearchLimit]) {
+        self.searcher.go(&self.board, limits);
     }
 }
 
@@ -46,7 +55,7 @@ impl Searcher {
         }
     }
 
-    fn go(&mut self, board: &Board) {
+    fn go(&mut self, board: &Board, limits: &[SearchLimit]) {
         let depth = 6;
         let score = self.negamax(board, depth, 0, -INF, INF);
         self.report_search_info(score, depth);

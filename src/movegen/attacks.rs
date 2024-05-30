@@ -56,7 +56,7 @@ const KING_ATTACKS: [Bitboard; Square::CNT as usize] = init_attacks!(|sq_bb| {
         .or(sq_bb.shift(Direction::NW, 1))
 });
 
-const MAGIC_HASH_TABLE: MagicHashTable =
+static MAGIC_HASH_TABLE: MagicHashTable =
     unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/magic_init.bin"))) };
 
 pub fn king(sq: Square) -> Bitboard {
