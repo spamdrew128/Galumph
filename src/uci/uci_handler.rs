@@ -7,7 +7,7 @@ use crate::{
     },
     uci::{
         constants::{AUTHOR, NAME, VERSION},
-        setoption::display_options,
+        setoption::{display_options,Overhead},
         uci_input::{GoArg, UciCommand},
     },
 };
@@ -29,7 +29,7 @@ impl UciHandler {
         Self {
             search_manager: SearchManager::new(),
             stored_command: None,
-            overhead: 0,
+            overhead: Milliseconds::from(Overhead::DEFAULT),
         }
     }
 
