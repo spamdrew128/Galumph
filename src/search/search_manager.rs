@@ -1,5 +1,7 @@
 use std::{
-    sync::atomic::{AtomicBool, Ordering}, time::Instant, vec
+    sync::atomic::{AtomicBool, Ordering},
+    time::Instant,
+    vec,
 };
 
 use crate::{
@@ -37,21 +39,24 @@ pub enum SearchLimit {
     MoveTime(Milliseconds),
     Depth(Depth),
     Nodes(Nodes),
+    Infinite,
 }
 
 pub struct SearchConfig {
     pub limits: Vec<SearchLimit>,
     pub time: [Milliseconds; Color::CNT as usize],
     pub inc: [Milliseconds; Color::CNT as usize],
+    pub overhead: Milliseconds,
     pub moves_to_go: Option<u32>,
 }
 
 impl SearchConfig {
-    pub const fn new() -> Self {
+    pub const fn new(overhead: Milliseconds) -> Self {
         Self {
             limits: vec![],
             time: [0, 0],
             inc: [0, 0],
+            overhead,
             moves_to_go: None,
         }
     }
@@ -122,8 +127,7 @@ impl Searcher {
 
         println!(
             "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {}",
-            self.node_cnt,
-            self.seldepth
+            self.node_cnt, self.seldepth
         );
     }
 
@@ -134,11 +138,12 @@ impl Searcher {
         for &limit in &config.limits {
             match limit {
                 SearchLimit::Standard => {
-                    let t = time / 25 + inc / 2;
+                    let t = (time / 25 + inc / 2).saturating_sub(config.overhead);
                     self.timer = Some(SearchTimer::new(t));
                     break;
                 }
-                SearchLimit::MoveTime(t) => {
+                SearchLimit::MoveTime(time) => {
+                    let t = time.saturating_sub(config.overhead);
                     self.timer = Some(SearchTimer::new(t));
                     break;
                 }
@@ -153,7 +158,8 @@ impl Searcher {
         }
 
         if let Some(timer) = self.timer {
-            if timer.is_hard_expired() { // TODO: replace with soft
+            if timer.is_hard_expired() {
+                // TODO: replace with soft
                 return false;
             }
         }
