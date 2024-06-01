@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    evaluation::eval::material_diff,
+    nnue::eval::material_diff,
     movegen::{
         board_rep::{Board, Color, START_FEN},
         chess_move::Move,
