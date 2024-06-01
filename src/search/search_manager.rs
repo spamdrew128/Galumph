@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-use super::search_timer::SearchTimer;
+use super::{pv_table::PvTable, search_timer::SearchTimer};
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -84,11 +84,12 @@ impl SearchManager {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Searcher {
     timer: Option<SearchTimer>,
 
     // info
+    pv_table: PvTable,
     best_move: Move,
     seldepth: u8,
     node_cnt: u64,
@@ -100,6 +101,7 @@ impl Searcher {
     fn new() -> Self {
         Self {
             timer: None,
+            pv_table: PvTable::new(),
             best_move: Move::NULL,
             seldepth: 0,
             node_cnt: 0,
@@ -126,8 +128,10 @@ impl Searcher {
         let nps = (u128::from(self.node_cnt) * 1_000_000) / elapsed.as_micros().max(1);
 
         println!(
-            "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {}",
-            self.node_cnt, self.seldepth
+            "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {} pv {}",
+            self.node_cnt,
+            self.seldepth,
+            self.pv_table.pv_string()
         );
     }
 
@@ -158,8 +162,8 @@ impl Searcher {
         }
 
         if let Some(timer) = self.timer {
+            // TODO: replace with soft
             if timer.is_hard_expired() {
-                // TODO: replace with soft
                 return false;
             }
         }
@@ -167,8 +171,8 @@ impl Searcher {
         let mut result = true;
         for &limit in config.limits.iter() {
             result &= match limit {
-                SearchLimit::Depth(depth_limit) => next_depth > depth_limit,
-                SearchLimit::Nodes(node_limit) => self.node_cnt > node_limit,
+                SearchLimit::Depth(depth_limit) => next_depth <= depth_limit,
+                SearchLimit::Nodes(node_limit) => self.node_cnt <= node_limit,
                 _ => true,
             }
         }
@@ -185,7 +189,7 @@ impl Searcher {
         let mut best_move = Move::NULL;
         let mut depth = 1;
         while self.continue_deepening(config, depth) {
-            let score = self.negamax(board, depth, 0, -INF, INF);
+            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
 
             if stop_flag_is_set() {
                 break;
@@ -193,7 +197,7 @@ impl Searcher {
 
             self.report_search_info(score, depth, stopwatch);
 
-            best_move = self.best_move;
+            best_move = self.pv_table.best_move();
             depth += 1;
         }
 
@@ -213,7 +217,7 @@ impl Searcher {
         false
     }
 
-    fn negamax(
+    fn negamax<const IS_ROOT: bool>(
         &mut self,
         board: &Board,
         depth: Depth,
@@ -221,6 +225,11 @@ impl Searcher {
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
+        if IS_ROOT {
+            self.seldepth = 0;
+        }
+
+        self.pv_table.set_length(ply);
         self.seldepth = self.seldepth.max(ply);
 
         if depth == 0 || ply >= MAX_PLY {
@@ -230,7 +239,7 @@ impl Searcher {
         let in_check = board.in_check();
 
         let mut best_score = -INF;
-        let mut best_move = Move::NULL;
+        let mut _best_move = Move::NULL;
 
         let mut move_picker = MovePicker::new(board);
         let mut moves_played = 0;
@@ -244,7 +253,7 @@ impl Searcher {
             moves_played += 1;
             self.node_cnt += 1;
 
-            let score = -self.negamax(&new_board, depth - 1, ply + 1, -beta, -alpha);
+            let score = -self.negamax::<false>(&new_board, depth - 1, ply + 1, -beta, -alpha);
 
             if stop_flag_is_set() || self.out_of_time() {
                 set_stop_flag();
@@ -255,8 +264,10 @@ impl Searcher {
                 best_score = score;
 
                 if score > alpha {
-                    best_move = mv;
+                    _best_move = mv;
                     alpha = score;
+
+                    self.pv_table.update(ply, mv);
                 }
 
                 if score >= beta {
@@ -274,7 +285,7 @@ impl Searcher {
             };
         }
 
-        self.best_move = best_move; // remove this later when we have PV table
+        // TODO: use best_move for tt here
         best_score
     }
 }

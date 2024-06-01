@@ -7,7 +7,7 @@ use crate::{
     },
     uci::{
         constants::{AUTHOR, NAME, VERSION},
-        setoption::{display_options,Overhead},
+        setoption::{display_options, Overhead},
         uci_input::{GoArg, UciCommand},
     },
 };
