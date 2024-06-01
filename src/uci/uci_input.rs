@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum UciCommand {
     #[default]
     Unsupported,
@@ -28,8 +28,9 @@ pub enum UciCommand {
     SetOptionThreads(u32),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum GoArg {
+    #[default]
     Unsupported,
     Time(Color, Milliseconds),
     Inc(Color, Milliseconds),

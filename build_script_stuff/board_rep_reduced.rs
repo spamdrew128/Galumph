@@ -93,7 +93,7 @@ impl Bitboard {
     pub const fn popcount(self) -> u8 {
         self.0.count_ones() as u8
     }
- }
+}
 
 #[cfg(test)]
 mod tests {
