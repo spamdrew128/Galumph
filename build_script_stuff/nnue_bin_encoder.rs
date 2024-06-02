@@ -1,6 +1,3 @@
-use core::net;
-use std::mem::transmute;
-
 use bytemuck::{AnyBitPattern, NoUninit, Pod, Zeroable};
 
 use super::rng::Rng;
@@ -21,13 +18,14 @@ pub struct Network {
     l1_biases: L1Params,
     output_weights: [L1Params; 2],
     output_biases: i16,
+    _padding: [u8; 62],
 }
 
 #[derive(Debug, Copy, Clone, AnyBitPattern)]
 #[repr(C, align(64))]
 pub struct NetBytes {
-    bytes: [u8; std::mem::size_of::<Network>()],
-} 
+    pub bytes: [u8; std::mem::size_of::<Network>()],
+}
 
 pub fn get_random_nnue_bytes() -> Box<NetBytes> {
     let mut rng = Rng::new();

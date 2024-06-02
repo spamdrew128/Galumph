@@ -23,16 +23,6 @@ struct MagicEntry {
 }
 
 impl MagicEntry {
-    const EMPTY: Self = Self {
-        mask: Bitboard::EMPTY,
-        magic: 0,
-        shift: 0,
-        table_offset: 0,
-    };
-
-    // const R_SHIFT: u8 = Square::CNT - 12;
-    // const B_SHIFT: u8 = Square::CNT - 9;
-
     const fn new(mask: Bitboard, magic: u64, table_offset: usize) -> Self {
         let shift = Square::CNT - mask.popcount();
         Self {

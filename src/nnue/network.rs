@@ -4,8 +4,8 @@ const INPUT_SIZE: usize = Square::CNT as usize * Piece::CNT as usize * Color::CN
 const L1_SIZE: usize = 64;
 const INPUT_SCALE: usize = 255;
 
-// static NNUE: Network =
-//     unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/net.bin"))) };
+static NNUE: Network =
+    unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/net.bin"))) };
 
 #[repr(C, align(64))]
 pub struct Accumulator {
