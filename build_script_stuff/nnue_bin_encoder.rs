@@ -1,15 +1,19 @@
 use std::mem::transmute;
 
+use bytemuck::{NoUninit, Pod, Zeroable};
+
 use super::rng::Rng;
 
 const INPUT_SIZE: usize = 64 * 6 * 2;
 const L1_SIZE: usize = 64;
 
+#[derive(Debug, Zeroable, Pod, Copy, Clone)]
 #[repr(C, align(64))]
 pub struct L1Params {
     vals: [i16; L1_SIZE],
 }
 
+#[derive(Debug, Zeroable, NoUninit, Copy, Clone)]
 #[repr(C)]
 pub struct Network {
     l1_weights: [L1Params; INPUT_SIZE],
@@ -32,12 +36,7 @@ pub fn get_random_nnue_bytes() -> Box<[u8; std::mem::size_of::<Network>()]> {
         res
     }
 
-    let mut res = Box::new(Network {
-        l1_weights: [ZERO_L1; INPUT_SIZE],
-        l1_biases: ZERO_L1,
-        output_weights: [ZERO_L1; 2 as usize],
-        output_biases: rng.rand_i16(),
-    });
+    let mut res: Box<Network> = bytemuck::allocation::zeroed_box();
 
     for v in res.l1_weights.iter_mut() {
         *v = rand_l1(&mut rng);
@@ -49,5 +48,7 @@ pub fn get_random_nnue_bytes() -> Box<[u8; std::mem::size_of::<Network>()]> {
         *v = rand_l1(&mut rng);
     }
 
-    unsafe { transmute(res) }
+    res.output_biases = rng.rand_i16();
+
+    bytemuck::allocation::try_cast_box(res).unwrap()
 }

@@ -13,7 +13,7 @@ use super::{
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
 const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
 
-#[derive(Debug,Zeroable)]
+#[derive(Debug, Zeroable)]
 #[repr(C)]
 struct MagicEntry {
     shift: u8,
@@ -99,13 +99,6 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 
 impl MagicHashTable {
     fn construct() -> Box<Self> {
-        // TODO: find a less scuffed way to do this :p
-        const ZEROED: MagicHashTable = MagicHashTable {
-            rook_entries: [MagicEntry::EMPTY; Square::CNT as usize],
-            bishop_entries: [MagicEntry::EMPTY; Square::CNT as usize],
-            hash_table: [Bitboard::EMPTY; magic_tables::TABLE_SIZE],
-        };
-
         let mut res: Box<Self> = bytemuck::allocation::zeroed_box();
 
         let mut offset = 0;
