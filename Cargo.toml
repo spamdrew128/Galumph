@@ -5,7 +5,8 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[build-dependencies]
+bytemuck = { version = "1.16.0", features = ["derive", "extern_crate_alloc"] }
 
 [profile.release]
 lto = true

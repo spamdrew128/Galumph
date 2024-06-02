@@ -1,4 +1,5 @@
 use build_script_stuff::magic_builder::get_magic_bytes;
+use build_script_stuff::nnue_bin_encoder::get_random_nnue_bytes;
 
 use std::fs::File;
 use std::io::BufWriter;
@@ -18,4 +19,7 @@ fn gen_output_file(name: &str, buf: &[u8]) {
 fn main() {
     let magic_bytes = get_magic_bytes();
     gen_output_file("magic_init.bin", magic_bytes.as_slice());
+
+    let nnue_bytes = get_random_nnue_bytes();
+    gen_output_file("net.bin", nnue_bytes.as_slice());
 }

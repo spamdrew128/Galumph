@@ -1,8 +1,8 @@
 // remove this later!
 #![allow(dead_code)]
 
-mod nnue;
 mod movegen;
+mod nnue;
 mod search;
 mod uci;
 mod util_macros;

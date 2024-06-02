@@ -2,6 +2,8 @@ use std::mem::transmute;
 
 use crate::build_script_stuff::magic_tables::{BISHOP_MAGICS, ROOK_MAGICS};
 
+use bytemuck::{self, Zeroable};
+
 use super::{
     board_rep_reduced::{Bitboard, Direction, Square},
     magic_tables::{self, TABLE_SIZE},
@@ -11,7 +13,7 @@ use super::{
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
 const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
 
-#[derive(Debug)]
+#[derive(Debug,Zeroable)]
 #[repr(C)]
 struct MagicEntry {
     shift: u8,
@@ -46,6 +48,7 @@ impl MagicEntry {
     }
 }
 
+#[derive(Zeroable)]
 #[repr(C)]
 struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
@@ -103,7 +106,7 @@ impl MagicHashTable {
             hash_table: [Bitboard::EMPTY; magic_tables::TABLE_SIZE],
         };
 
-        let mut res = Box::new(ZEROED);
+        let mut res: Box<Self> = bytemuck::allocation::zeroed_box();
 
         let mut offset = 0;
 

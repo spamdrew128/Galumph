@@ -1,3 +1,5 @@
+use bytemuck::Zeroable;
+
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Square(u8);
 
@@ -29,7 +31,7 @@ pub enum Direction {
     NW,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Zeroable)]
 pub struct Bitboard(u64);
 
 impl Bitboard {

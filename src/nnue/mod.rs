@@ -1,2 +1,2 @@
 pub(crate) mod eval;
-mod network;
+pub(crate) mod network;
