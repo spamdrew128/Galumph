@@ -382,6 +382,18 @@ impl Piece {
         self.0 as usize
     }
 
+    pub const fn as_nnue_index(self) -> usize {
+        match self {
+            Self::PAWN => 0,
+            Self::KNIGHT => 1,
+            Self::BISHOP => 2,
+            Self::ROOK => 3,
+            Self::QUEEN => 4,
+            Self::KING => 5,
+            _ => panic!("invalid"),
+        }
+    }
+
     pub fn from_char(ch: char) -> Option<Self> {
         match ch {
             'n' | 'N' => Some(Self::KNIGHT),

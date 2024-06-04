@@ -20,6 +20,16 @@ pub struct Network {
     output_bias: i16,
 }
 
+fn params_indexes(sq: Square, piece: Piece, color: Color) -> (usize, usize) {
+    let color_stride = usize::from(Piece::CNT * Square::CNT);
+    let piece_stride = usize::from(Square::CNT);
+
+    let p = piece.as_nnue_index();
+
+    let us_idx = color.as_index() * color_stride + p * piece_stride + sq.as_index();
+    
+}
+
 #[derive(Clone)]
 #[repr(C, align(64))]
 pub struct Accumulator([[i16; L1_SIZE]; Color::CNT as usize]);
