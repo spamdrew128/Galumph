@@ -4,6 +4,7 @@ use super::rng::Rng;
 
 const INPUT_SIZE: usize = 64 * 6 * 2;
 const L1_SIZE: usize = 64;
+
 const INPUT_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
 

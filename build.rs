@@ -16,12 +16,32 @@ fn gen_output_file(name: &str, buf: &[u8]) {
     out_file.write(buf).unwrap();
 }
 
+fn get_existing_net_bytes() -> Vec<u8> {
+    let mut path = std::env::current_dir().unwrap();
+    path.push("net_binary");
+    path.push("net.bin");
+    
+    if path.is_file() {
+        return std::fs::read(path).unwrap();
+    }
+
+    vec![]
+}
+
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
 
+    // Magic table generation
     let magic_bytes = get_magic_bytes();
     gen_output_file("magic_init.bin", magic_bytes.as_slice());
 
-    let nnue_bytes = get_random_nnue_bytes();
-    gen_output_file("net.bin", nnue_bytes.bytes.as_slice());
+    // NNUE file generation
+    let existing_nnue_bytes = get_existing_net_bytes();
+
+    if existing_nnue_bytes.is_empty() {
+        let nnue_bytes = get_random_nnue_bytes();
+        gen_output_file("net.bin", nnue_bytes.bytes.as_slice());
+    } else {
+        gen_output_file("net.bin", existing_nnue_bytes.as_slice());
+    }
 }

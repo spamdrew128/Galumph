@@ -1,7 +1,8 @@
-use crate::{bitloop, movegen::board_rep::{Board, Color, Piece, Square}};
+use crate::movegen::board_rep::{Board, Color, Piece, Square};
 
 const INPUT_SIZE: usize = Square::CNT as usize * Piece::CNT as usize * Color::CNT as usize;
-const L1_SIZE: usize = 64;
+const L1_SIZE: usize = 768;
+
 const INPUT_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
 
@@ -30,15 +31,19 @@ impl Accumulator {
 
     fn from_pos(board: &Board) -> Self {
         let mut res = Self::new();
-        for p in Piece::LIST {
-            let w_pieces = board.piece_bb(p, board.stm);
-            let b_pieces = board.piece_bb(p, board.stm.flip());
-
-            bitloop!(|sq| w_pieces, {
-                res
-            });
-        }
 
         res
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NNUE;
+
+    #[ignore]
+    #[test]
+    fn peep() {
+        let _nnue = &NNUE;
+        println!("hey");
     }
 }
