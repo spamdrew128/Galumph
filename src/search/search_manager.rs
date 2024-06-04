@@ -5,12 +5,12 @@ use std::{
 };
 
 use crate::{
-    evaluation::eval::material_diff,
     movegen::{
         board_rep::{Board, Color, START_FEN},
         chess_move::Move,
         movegen::MovePicker,
     },
+    nnue::eval::material_diff,
     search::constants::{
         Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
         MAX_PLY,

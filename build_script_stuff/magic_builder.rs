@@ -2,6 +2,8 @@ use std::mem::transmute;
 
 use crate::build_script_stuff::magic_tables::{BISHOP_MAGICS, ROOK_MAGICS};
 
+use bytemuck::{self, Zeroable};
+
 use super::{
     board_rep_reduced::{Bitboard, Direction, Square},
     magic_tables::{self, TABLE_SIZE},
@@ -11,7 +13,7 @@ use super::{
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
 const BISHOP_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
 
-#[derive(Debug)]
+#[derive(Debug, Zeroable)]
 #[repr(C)]
 struct MagicEntry {
     shift: u8,
@@ -21,16 +23,6 @@ struct MagicEntry {
 }
 
 impl MagicEntry {
-    const EMPTY: Self = Self {
-        mask: Bitboard::EMPTY,
-        magic: 0,
-        shift: 0,
-        table_offset: 0,
-    };
-
-    // const R_SHIFT: u8 = Square::CNT - 12;
-    // const B_SHIFT: u8 = Square::CNT - 9;
-
     const fn new(mask: Bitboard, magic: u64, table_offset: usize) -> Self {
         let shift = Square::CNT - mask.popcount();
         Self {
@@ -46,6 +38,7 @@ impl MagicEntry {
     }
 }
 
+#[derive(Zeroable)]
 #[repr(C)]
 struct MagicHashTable {
     rook_entries: [MagicEntry; Square::CNT as usize],
@@ -96,14 +89,7 @@ const fn generate_attacks(sq: Square, blockers: Bitboard, directions: &[Directio
 
 impl MagicHashTable {
     fn construct() -> Box<Self> {
-        // TODO: find a less scuffed way to do this :p
-        const ZEROED: MagicHashTable = MagicHashTable {
-            rook_entries: [MagicEntry::EMPTY; Square::CNT as usize],
-            bishop_entries: [MagicEntry::EMPTY; Square::CNT as usize],
-            hash_table: [Bitboard::EMPTY; magic_tables::TABLE_SIZE],
-        };
-
-        let mut res = Box::new(ZEROED);
+        let mut res: Box<Self> = bytemuck::allocation::zeroed_box();
 
         let mut offset = 0;
 
