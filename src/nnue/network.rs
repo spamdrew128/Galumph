@@ -71,7 +71,7 @@ impl Accumulator {
     pub const ADD: i16 = 1;
 
     fn new() -> Self {
-        Self([[0; L1_SIZE]; Color::CNT as usize])
+        Self([NNUE.l1_biases.0; Color::CNT as usize])
     }
 
     fn from_pos(board: &Board) -> Self {
