@@ -45,8 +45,8 @@ impl FeatureIndexs {
 pub struct Accumulator([[i16; L1_SIZE]; Color::CNT as usize]);
 
 impl Accumulator {
-    const REMOVE: i16 = -1;
-    const ADD: i16 = 1;
+    pub const REMOVE: i16 = -1;
+    pub const ADD: i16 = 1;
 
     fn new() -> Self {
         Self([[0; L1_SIZE]; Color::CNT as usize])
@@ -67,13 +67,13 @@ impl Accumulator {
         res
     }
 
-    fn update<const TYPE: i16>(&mut self, idxs: &FeatureIndexs) {
+    fn update<const SIGN: i16>(&mut self, idxs: &FeatureIndexs) {
         for (&color, &idx) in Color::LIST.iter().zip(idxs.0.iter()) {
             let weights = &NNUE.l1_weights[idx].0;
             let acc = &mut self.0[color.as_index()];
 
-            for (elem, &weight) in acc.iter_mut().zip(weights) {
-                *elem += weight * TYPE;
+            for (neuron_sum, &weight) in acc.iter_mut().zip(weights) {
+                *neuron_sum += weight * SIGN;
             }
         }
     }
