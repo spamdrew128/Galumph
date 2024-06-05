@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use crate::{
     bitloop,
     movegen::board_rep::{Board, Color, Piece, Square},
@@ -44,6 +46,20 @@ impl FeatureIndexs {
 #[repr(C, align(64))]
 pub struct Accumulator([[i16; L1_SIZE]; Color::CNT as usize]);
 
+impl Index<usize> for Accumulator {
+    type Output = [i16; L1_SIZE];
+
+    fn index(&self, i: usize) -> &Self::Output {
+        &self.0[i]
+    }
+}
+
+impl IndexMut<usize> for Accumulator {
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        &mut self.0[i]
+    }
+}
+
 impl Accumulator {
     pub const REMOVE: i16 = -1;
     pub const ADD: i16 = 1;
@@ -70,7 +86,7 @@ impl Accumulator {
     fn update<const SIGN: i16>(&mut self, idxs: &FeatureIndexs) {
         for (&color, &idx) in Color::LIST.iter().zip(idxs.0.iter()) {
             let weights = &NNUE.l1_weights[idx].0;
-            let acc = &mut self.0[color.as_index()];
+            let acc = &mut self[color.as_index()];
 
             for (neuron_sum, &weight) in acc.iter_mut().zip(weights) {
                 *neuron_sum += weight * SIGN;
