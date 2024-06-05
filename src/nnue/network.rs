@@ -2,7 +2,8 @@ use std::ops::{Index, IndexMut};
 
 use crate::{
     bitloop,
-    movegen::board_rep::{Board, Color, Piece, Square}, search::constants::EvalScore,
+    movegen::board_rep::{Board, Color, Piece, Square},
+    search::constants::EvalScore,
 };
 
 // TODO: put these in some sort of header file or library :)
@@ -12,8 +13,8 @@ const L1_SIZE: usize = 768;
 const L1_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
 
-fn activation(sum: i16) -> i16 {
-    sum.clamp(0, L1_SCALE)
+fn activation(sum: i16) -> i32 {
+    i32::from(sum.clamp(0, L1_SCALE))
 }
 
 static NNUE: Network =
@@ -108,26 +109,28 @@ impl Accumulator {
         let their_sums = self[them].iter();
         let their_weights = &NNUE.output_weights[them].0;
 
-        let mut eval = NNUE.output_bias;
+        let mut eval = EvalScore::from(NNUE.output_bias);
 
         for (&sum, &weight) in our_sums.zip(our_weights) {
-            eval += activation(sum) * weight;
+            eval += activation(sum) * i32::from(weight);
         }
         for (&sum, &weight) in their_sums.zip(their_weights) {
-            eval += activation(sum) * weight;
+            eval += activation(sum) * i32::from(weight);
         }
 
-        i32::from(eval / (L1_SCALE * OUTPUT_SCALE))
+        (eval * 400) / i32::from(L1_SCALE * OUTPUT_SCALE)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{movegen::board_rep::{Board, START_FEN}, nnue::network::Accumulator};
+    use crate::{
+        movegen::board_rep::{Board, START_FEN},
+        nnue::network::Accumulator,
+    };
 
     use super::NNUE;
 
-    #[ignore]
     #[test]
     fn peep() {
         let _nnue = &NNUE;

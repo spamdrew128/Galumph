@@ -848,10 +848,7 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        movegen::board_rep::Board,
-        movegen::perft,
-    };
+    use crate::{movegen::board_rep::Board, movegen::perft};
 
     #[test]
     fn fen_test() {
