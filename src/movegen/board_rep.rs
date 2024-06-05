@@ -849,20 +849,9 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use crate::{
-        movegen::board_rep::{Board, Direction, Square},
+        movegen::board_rep::Board,
         movegen::perft,
     };
-
-    #[test]
-    fn shifting_test() {
-        let bb = Square::B2.as_bitboard();
-        bb.print();
-        println!("---------------------");
-
-        for dir in Direction::LIST {
-            bb.shift(dir, 1).print();
-        }
-    }
 
     #[test]
     fn fen_test() {

@@ -13,7 +13,7 @@ const L1_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
 
 fn activation(sum: i16) -> i16 {
-    sum
+    sum.clamp(0, L1_SCALE)
 }
 
 static NNUE: Network =
@@ -35,7 +35,7 @@ pub struct FeatureIndexs([usize; Color::CNT as usize]);
 
 impl FeatureIndexs {
     fn get(sq: Square, piece: Piece, piece_color: Color) -> Self {
-        let color_stride = usize::from(Piece::CNT * Square::CNT);
+        let color_stride = usize::from(Piece::CNT) * usize::from(Square::CNT);
         let piece_stride = usize::from(Square::CNT);
 
         let p = piece.as_nnue_index() * piece_stride;
@@ -123,6 +123,8 @@ impl Accumulator {
 
 #[cfg(test)]
 mod tests {
+    use crate::{movegen::board_rep::{Board, START_FEN}, nnue::network::Accumulator};
+
     use super::NNUE;
 
     #[ignore]
@@ -130,5 +132,10 @@ mod tests {
     fn peep() {
         let _nnue = &NNUE;
         println!("hey");
+
+        let board = Board::from_fen(START_FEN);
+        let acc = Accumulator::from_pos(&board);
+        let eval = acc.evaluate(board.stm);
+        println!("{eval}");
     }
 }
