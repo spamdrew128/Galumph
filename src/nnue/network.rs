@@ -32,9 +32,9 @@ pub struct Network {
 }
 
 #[derive(Clone)]
-pub struct FeatureIndexs([usize; Color::CNT as usize]);
+pub struct FeatureIndicies([usize; Color::CNT as usize]);
 
-impl FeatureIndexs {
+impl FeatureIndicies {
     fn get(sq: Square, piece: Piece, piece_color: Color) -> Self {
         let color_stride = usize::from(Piece::CNT) * usize::from(Square::CNT);
         let piece_stride = usize::from(Square::CNT);
@@ -80,7 +80,7 @@ impl Accumulator {
         for color in Color::LIST {
             for piece in Piece::LIST {
                 bitloop!(|sq| board.piece_bb(piece, color), {
-                    let idxs = FeatureIndexs::get(sq, piece, color);
+                    let idxs = FeatureIndicies::get(sq, piece, color);
                     res.update::<{ Accumulator::ADD }>(&idxs)
                 });
             }
@@ -89,7 +89,7 @@ impl Accumulator {
         res
     }
 
-    fn update<const SIGN: i16>(&mut self, idxs: &FeatureIndexs) {
+    fn update<const SIGN: i16>(&mut self, idxs: &FeatureIndicies) {
         for (&color, &idx) in Color::LIST.iter().zip(idxs.0.iter()) {
             let weights = &NNUE.l1_weights[idx].0;
             let acc = &mut self[color.as_index()];
