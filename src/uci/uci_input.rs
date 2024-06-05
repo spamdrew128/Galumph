@@ -105,7 +105,7 @@ impl UciCommand {
                 };
                 let mut board = Board::from_fen(&fen);
 
-                while let Some(s) = tokens.next() {
+                for s in tokens.by_ref() {
                     if let Some(mv) = Move::from_str(s, &board) {
                         board.try_play_move(mv);
                     }
