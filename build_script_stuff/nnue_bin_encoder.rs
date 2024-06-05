@@ -5,7 +5,7 @@ use super::rng::Rng;
 const INPUT_SIZE: usize = 64 * 6 * 2;
 const L1_SIZE: usize = 64;
 
-const INPUT_SCALE: i16 = 255;
+const L1_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
 
 #[derive(Debug, Zeroable, Pod, Copy, Clone)]
@@ -45,10 +45,10 @@ pub fn get_random_nnue_bytes() -> Box<NetBytes> {
     let mut res: Box<Network> = bytemuck::allocation::zeroed_box();
 
     for v in res.l1_weights.iter_mut() {
-        *v = rand_l1(&mut rng, INPUT_SCALE);
+        *v = rand_l1(&mut rng, L1_SCALE);
     }
 
-    res.l1_biases = rand_l1(&mut rng, INPUT_SCALE);
+    res.l1_biases = rand_l1(&mut rng, L1_SCALE);
 
     for v in res.output_weights.iter_mut() {
         *v = rand_l1(&mut rng, OUTPUT_SCALE);

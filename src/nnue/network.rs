@@ -2,20 +2,25 @@ use std::ops::{Index, IndexMut};
 
 use crate::{
     bitloop,
-    movegen::board_rep::{Board, Color, Piece, Square},
+    movegen::board_rep::{Board, Color, Piece, Square}, search::constants::EvalScore,
 };
 
+// TODO: put these in some sort of header file or library :)
 const INPUT_SIZE: usize = Square::CNT as usize * Piece::CNT as usize * Color::CNT as usize;
 const L1_SIZE: usize = 768;
 
-const INPUT_SCALE: i16 = 255;
+const L1_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
+
+fn activation(sum: i16) -> i16 {
+    sum
+}
 
 static NNUE: Network =
     unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/net.bin"))) };
 
 #[repr(C, align(64))]
-pub struct L1Params([i16; L1_SIZE]); // TODO: Add index operator overloading.
+pub struct L1Params([i16; L1_SIZE]);
 
 #[repr(C)]
 pub struct Network {
@@ -92,6 +97,27 @@ impl Accumulator {
                 *neuron_sum += weight * SIGN;
             }
         }
+    }
+
+    fn evaluate(&self, stm: Color) -> EvalScore {
+        let (us, them) = (stm.as_index(), stm.flip().as_index());
+
+        let our_sums = self[us].iter();
+        let our_weights = &NNUE.output_weights[us].0;
+
+        let their_sums = self[them].iter();
+        let their_weights = &NNUE.output_weights[them].0;
+
+        let mut eval = NNUE.output_bias;
+
+        for (&sum, &weight) in our_sums.zip(our_weights) {
+            eval += activation(sum) * weight;
+        }
+        for (&sum, &weight) in their_sums.zip(their_weights) {
+            eval += activation(sum) * weight;
+        }
+
+        i32::from(eval / (L1_SCALE * OUTPUT_SCALE))
     }
 }
 
