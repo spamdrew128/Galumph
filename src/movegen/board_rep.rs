@@ -426,7 +426,6 @@ impl Piece {
 }
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
-#[repr(u8)]
 pub enum Color {
     #[default]
     White,
