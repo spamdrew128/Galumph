@@ -90,9 +90,8 @@ impl Accumulator {
     }
 
     fn update<const SIGN: i16>(&mut self, idxs: &FeatureIndices) {
-        for (&color, &idx) in Color::LIST.iter().zip(idxs.0.iter()) {
+        for (acc, &idx) in self.0.iter_mut().zip(idxs.0.iter()) {
             let weights = &NNUE.l1_weights[idx].0;
-            let acc = &mut self[color.as_index()];
 
             for (neuron_sum, &weight) in acc.iter_mut().zip(weights) {
                 *neuron_sum += weight * SIGN;

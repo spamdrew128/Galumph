@@ -13,7 +13,7 @@ fn gen_output_file(name: &str, buf: &[u8]) {
     out_dir.push(name);
 
     let mut out_file = BufWriter::new(File::create(out_dir).unwrap());
-    out_file.write(buf).unwrap();
+    out_file.write_all(buf).unwrap();
 }
 
 fn get_existing_net_bytes() -> Vec<u8> {
