@@ -109,7 +109,7 @@ impl Accumulator {
         let their_sums = self[them].iter();
         let their_weights = &NNUE.output_weights[them].0;
 
-        let mut eval = EvalScore::from(NNUE.output_bias);
+        let mut eval = 0;
 
         for (&sum, &weight) in our_sums.zip(our_weights) {
             eval += activation(sum) * i32::from(weight);
@@ -117,6 +117,7 @@ impl Accumulator {
         for (&sum, &weight) in their_sums.zip(their_weights) {
             eval += activation(sum) * i32::from(weight);
         }
+        eval += EvalScore::from(NNUE.output_bias);
 
         (eval * 400) / i32::from(L1_SCALE * OUTPUT_SCALE)
     }
