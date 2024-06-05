@@ -104,10 +104,10 @@ impl Accumulator {
         let (us, them) = (stm.as_index(), stm.flip().as_index());
 
         let our_sums = self[us].iter();
-        let our_weights = &NNUE.output_weights[us].0;
+        let our_weights = &NNUE.output_weights[0].0;
 
         let their_sums = self[them].iter();
-        let their_weights = &NNUE.output_weights[them].0;
+        let their_weights = &NNUE.output_weights[1].0;
 
         let mut eval = 0;
 
