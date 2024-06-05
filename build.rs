@@ -20,7 +20,7 @@ fn get_existing_net_bytes() -> Vec<u8> {
     let mut path = std::env::current_dir().unwrap();
     path.push("net_binary");
     path.push("net.bin");
-    
+
     if path.is_file() {
         return std::fs::read(path).unwrap();
     }

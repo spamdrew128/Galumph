@@ -1,4 +1,7 @@
-use crate::movegen::board_rep::{Board, Color, Piece, Square};
+use crate::{
+    bitloop,
+    movegen::board_rep::{Board, Color, Piece, Square},
+};
 
 const INPUT_SIZE: usize = Square::CNT as usize * Piece::CNT as usize * Color::CNT as usize;
 const L1_SIZE: usize = 768;
@@ -10,7 +13,7 @@ static NNUE: Network =
     unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/net.bin"))) };
 
 #[repr(C, align(64))]
-pub struct L1Params([i16; L1_SIZE]);
+pub struct L1Params([i16; L1_SIZE]); // TODO: Add index operator overloading.
 
 #[repr(C)]
 pub struct Network {
@@ -20,14 +23,21 @@ pub struct Network {
     output_bias: i16,
 }
 
-fn params_indexes(sq: Square, piece: Piece, color: Color) -> (usize, usize) {
-    let color_stride = usize::from(Piece::CNT * Square::CNT);
-    let piece_stride = usize::from(Square::CNT);
+#[derive(Clone)]
+pub struct FeatureIndexs([usize; Color::CNT as usize]);
 
-    let p = piece.as_nnue_index();
+impl FeatureIndexs {
+    fn get(sq: Square, piece: Piece, piece_color: Color) -> Self {
+        let color_stride = usize::from(Piece::CNT * Square::CNT);
+        let piece_stride = usize::from(Square::CNT);
 
-    let us_idx = color.as_index() * color_stride + p * piece_stride + sq.as_index();
-    
+        let p = piece.as_nnue_index() * piece_stride;
+
+        let white_idx = piece_color.as_index() * color_stride + p + sq.as_index();
+        let black_idx = piece_color.flip().as_index() * color_stride + p + sq.mirror().as_index();
+
+        Self([white_idx, black_idx])
+    }
 }
 
 #[derive(Clone)]
@@ -35,6 +45,9 @@ fn params_indexes(sq: Square, piece: Piece, color: Color) -> (usize, usize) {
 pub struct Accumulator([[i16; L1_SIZE]; Color::CNT as usize]);
 
 impl Accumulator {
+    const REMOVE: i16 = -1;
+    const ADD: i16 = 1;
+
     fn new() -> Self {
         Self([[0; L1_SIZE]; Color::CNT as usize])
     }
@@ -42,7 +55,27 @@ impl Accumulator {
     fn from_pos(board: &Board) -> Self {
         let mut res = Self::new();
 
+        for color in Color::LIST {
+            for piece in Piece::LIST {
+                bitloop!(|sq| board.piece_bb(piece, color), {
+                    let idxs = FeatureIndexs::get(sq, piece, color);
+                    res.update::<{ Accumulator::ADD }>(&idxs)
+                });
+            }
+        }
+
         res
+    }
+
+    fn update<const TYPE: i16>(&mut self, idxs: &FeatureIndexs) {
+        for (&color, &idx) in Color::LIST.iter().zip(idxs.0.iter()) {
+            let weights = &NNUE.l1_weights[idx].0;
+            let acc = &mut self.0[color.as_index()];
+
+            for (elem, &weight) in acc.iter_mut().zip(weights) {
+                *elem += weight * TYPE;
+            }
+        }
     }
 }
 
