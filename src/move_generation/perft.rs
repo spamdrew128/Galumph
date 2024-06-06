@@ -1,4 +1,4 @@
-use crate::movegen::{board_rep::START_FEN, movegen::MovePicker};
+use crate::move_generation::{board_rep::START_FEN, movegen::MovePicker};
 
 use super::board_rep::Board;
 
@@ -261,7 +261,7 @@ pub fn speed_test() {
 
 #[cfg(test)]
 mod tests {
-    use crate::movegen::{board_rep::Board, chess_move::Move};
+    use crate::move_generation::{board_rep::Board, chess_move::Move};
 
     use super::{run_test_suite, split_perft};
 

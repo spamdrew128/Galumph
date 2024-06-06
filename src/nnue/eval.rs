@@ -1,5 +1,5 @@
 use crate::{
-    movegen::board_rep::{Board, Piece},
+    move_generation::board_rep::{Board, Piece},
     search::constants::EvalScore,
 };
 

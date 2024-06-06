@@ -1,4 +1,4 @@
-use crate::movegen::{
+use crate::move_generation::{
     board_rep::{Bitboard, Color, Direction, Square},
     magic::MagicHashTable,
 };

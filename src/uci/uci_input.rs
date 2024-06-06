@@ -1,5 +1,5 @@
 use crate::{
-    movegen::{
+    move_generation::{
         board_rep::{Board, Color, START_FEN},
         chess_move::Move,
     },
@@ -171,7 +171,7 @@ impl UciCommand {
 #[cfg(test)]
 mod tests {
     use crate::{
-        movegen::{board_rep::Board, chess_move::Move},
+        move_generation::{board_rep::Board, chess_move::Move},
         uci::uci_input::UciCommand,
     };
 

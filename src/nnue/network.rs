@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::{
     bitloop,
-    movegen::board_rep::{Board, Color, Piece, Square},
+    move_generation::board_rep::{Board, Color, Piece, Square},
     search::constants::EvalScore,
 };
 
@@ -128,7 +128,7 @@ impl Accumulator {
 #[cfg(test)]
 mod tests {
     use crate::{
-        movegen::board_rep::{Board, START_FEN},
+        move_generation::board_rep::{Board, START_FEN},
         nnue::network::Accumulator,
     };
 
