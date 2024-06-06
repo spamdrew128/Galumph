@@ -56,12 +56,9 @@ impl Square {
     }
 
     fn color(self, board: &Board) -> Option<Color> {
-        for color in Color::LIST {
-            if self.as_bitboard().overlaps(board.all[color.as_index()]) {
-                return Some(color);
-            }
-        }
-        None
+        Color::LIST
+            .into_iter()
+            .find(|&color| self.as_bitboard().overlaps(board.all[color.as_index()]))
     }
 
     pub const fn left(self, count: u8) -> Self {
