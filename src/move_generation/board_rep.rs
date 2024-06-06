@@ -129,8 +129,8 @@ impl Square {
             return None;
         }
 
-        let file_num: u8 = (file_char as u8) - ('a' as u8);
-        let rank_num: u8 = 7 - ((rank_char as u8) - ('1' as u8));
+        let file_num: u8 = (file_char as u8) - b'a';
+        let rank_num: u8 = 7 - ((rank_char as u8) - b'1');
 
         Some(Square(rank_num * 8 + file_num))
     }
