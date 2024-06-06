@@ -77,7 +77,7 @@ impl Accumulator {
         Self([NNUE.l1_biases.0; Color::CNT as usize])
     }
 
-    fn from_pos(board: &Board) -> Self {
+    pub fn from_pos(board: &Board) -> Self {
         let mut res = Self::new();
 
         for color in Color::LIST {
@@ -92,7 +92,7 @@ impl Accumulator {
         res
     }
 
-    fn update<const SIGN: i16>(&mut self, idxs: &FeatureIndices) {
+    pub fn update<const SIGN: i16>(&mut self, idxs: &FeatureIndices) {
         for (acc, &idx) in self.0.iter_mut().zip(idxs.0.iter()) {
             let weights = &NNUE.l1_weights[idx].0;
 
@@ -102,7 +102,7 @@ impl Accumulator {
         }
     }
 
-    fn evaluate(&self, stm: Color) -> EvalScore {
+    pub fn evaluate(&self, stm: Color) -> EvalScore {
         let (us, them) = (stm.as_index(), stm.flip().as_index());
 
         let our_sums = self[us].iter();
