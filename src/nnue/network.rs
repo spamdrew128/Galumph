@@ -41,14 +41,17 @@ impl FeatureIndices {
 
         let p = piece.as_nnue_index() * piece_stride;
 
-        let white_idx = piece_color.as_index() * color_stride + p + sq.as_index();
-        let black_idx = piece_color.flip().as_index() * color_stride + p + sq.mirror().as_index();
+        // white index uses sq.mirror() because I use board representation layout
+        // that is mirrored from the standard layout, so some translation is required
+        // to convert to a feature index.
+        let white_idx = piece_color.as_index() * color_stride + p + sq.mirror().as_index();
+        let black_idx = piece_color.flip().as_index() * color_stride + p + sq.as_index();
 
         Self([white_idx, black_idx])
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 #[repr(C, align(64))]
 pub struct Accumulator([[i16; L1_SIZE]; Color::CNT as usize]);
 
@@ -134,10 +137,10 @@ mod tests {
     #[test]
     fn peep() {
         let _nnue = &NNUE;
-        println!("hey");
 
         let board = Board::from_fen(START_FEN);
         let acc = Accumulator::from_pos(&board);
+        // println!("{:?}", acc);
         let eval = acc.evaluate(board.stm);
         println!("{eval}");
     }
