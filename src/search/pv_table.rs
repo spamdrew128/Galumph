@@ -1,4 +1,4 @@
-use crate::movegen::chess_move::Move;
+use crate::move_generation::chess_move::Move;
 
 use super::constants::{Ply, MAX_PLY};
 

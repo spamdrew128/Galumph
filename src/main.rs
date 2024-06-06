@@ -1,7 +1,7 @@
 // remove this later!
 #![allow(dead_code)]
 
-mod movegen;
+mod move_generation;
 mod nnue;
 mod search;
 mod uci;

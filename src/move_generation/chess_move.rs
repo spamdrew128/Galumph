@@ -1,4 +1,4 @@
-use crate::movegen::{
+use crate::move_generation::{
     attacks,
     board_rep::{Board, Color, Piece, Square},
 };
@@ -130,7 +130,7 @@ impl Move {
 
         let from = Square::from_string(from_str.as_str());
         let to = Square::from_string(to_str.as_str());
-        if from == None || to == None {
+        if from.is_none() || to.is_none() {
             return None;
         }
 
@@ -197,7 +197,7 @@ impl Move {
 
 #[cfg(test)]
 mod tests {
-    use crate::movegen::board_rep::{Piece, Square};
+    use crate::move_generation::board_rep::{Piece, Square};
 
     use super::{Flag, Move};
 

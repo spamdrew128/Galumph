@@ -105,17 +105,6 @@ mod tests {
     };
 
     #[test]
-    fn shifting_test() {
-        let bb = Square::B2.as_bitboard();
-        bb.print();
-        println!("---------------------");
-
-        for dir in Direction::LIST {
-            bb.shift(dir, 1).print();
-        }
-    }
-
-    #[test]
     fn fen_test() {
         let test_postions = perft::test_postions();
         for pos in test_postions {

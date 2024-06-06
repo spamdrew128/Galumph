@@ -1,5 +1,5 @@
 use crate::{
-    movegen::{
+    move_generation::{
         board_rep::{Board, Color, START_FEN},
         chess_move::Move,
     },
@@ -105,7 +105,7 @@ impl UciCommand {
                 };
                 let mut board = Board::from_fen(&fen);
 
-                while let Some(s) = tokens.next() {
+                for s in tokens.by_ref() {
                     if let Some(mv) = Move::from_str(s, &board) {
                         board.try_play_move(mv);
                     }
@@ -171,7 +171,7 @@ impl UciCommand {
 #[cfg(test)]
 mod tests {
     use crate::{
-        movegen::{board_rep::Board, chess_move::Move},
+        move_generation::{board_rep::Board, chess_move::Move},
         uci::uci_input::UciCommand,
     };
 

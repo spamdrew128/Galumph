@@ -3,7 +3,7 @@ pub type Nodes = u64;
 pub type Depth = u8;
 pub type Ply = u8;
 pub const MAX_DEPTH: Depth = i8::MAX as u8;
-pub const MAX_PLY: Ply = MAX_DEPTH as u8;
+pub const MAX_PLY: Ply = MAX_DEPTH;
 
 pub type EvalScore = i32;
 pub const INF: EvalScore = (i16::MAX - 10) as i32;

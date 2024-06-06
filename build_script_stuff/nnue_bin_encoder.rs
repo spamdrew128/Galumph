@@ -4,14 +4,13 @@ use super::rng::Rng;
 
 const INPUT_SIZE: usize = 64 * 6 * 2;
 const L1_SIZE: usize = 64;
-const INPUT_SCALE: i16 = 255;
+
+const L1_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
 
 #[derive(Debug, Zeroable, Pod, Copy, Clone)]
 #[repr(C, align(64))]
-pub struct L1Params {
-    vals: [i16; L1_SIZE],
-}
+pub struct L1Params([i16; L1_SIZE]);
 
 #[derive(Debug, Zeroable, NoUninit, Copy, Clone)]
 #[repr(C)]
@@ -32,12 +31,12 @@ pub struct NetBytes {
 pub fn get_random_nnue_bytes() -> Box<NetBytes> {
     let mut rng = Rng::new();
 
-    const ZERO_L1: L1Params = L1Params { vals: [0; L1_SIZE] };
+    const ZERO_L1: L1Params = L1Params([0; L1_SIZE]);
 
     fn rand_l1(rng: &mut Rng, scale: i16) -> L1Params {
         let mut res = ZERO_L1;
 
-        for v in res.vals.iter_mut() {
+        for v in res.0.iter_mut() {
             *v = rng.rand_i16() % scale;
         }
         res
@@ -46,10 +45,10 @@ pub fn get_random_nnue_bytes() -> Box<NetBytes> {
     let mut res: Box<Network> = bytemuck::allocation::zeroed_box();
 
     for v in res.l1_weights.iter_mut() {
-        *v = rand_l1(&mut rng, INPUT_SCALE);
+        *v = rand_l1(&mut rng, L1_SCALE);
     }
 
-    res.l1_biases = rand_l1(&mut rng, INPUT_SCALE);
+    res.l1_biases = rand_l1(&mut rng, L1_SCALE);
 
     for v in res.output_weights.iter_mut() {
         *v = rand_l1(&mut rng, OUTPUT_SCALE);

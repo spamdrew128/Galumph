@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    movegen::{
+    move_generation::{
         board_rep::{Board, Color, START_FEN},
         chess_move::Move,
         movegen::MovePicker,

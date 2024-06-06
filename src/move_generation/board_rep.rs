@@ -1,6 +1,6 @@
 use crate::{
     bb_from_squares, bitloop,
-    movegen::{
+    move_generation::{
         attacks,
         chess_move::{Flag, Move},
     },
@@ -56,12 +56,9 @@ impl Square {
     }
 
     fn color(self, board: &Board) -> Option<Color> {
-        for color in Color::LIST {
-            if self.as_bitboard().overlaps(board.all[color.as_index()]) {
-                return Some(color);
-            }
-        }
-        None
+        Color::LIST
+            .into_iter()
+            .find(|&color| self.as_bitboard().overlaps(board.all[color.as_index()]))
     }
 
     pub const fn left(self, count: u8) -> Self {
@@ -132,8 +129,8 @@ impl Square {
             return None;
         }
 
-        let file_num: u8 = (file_char as u8) - ('a' as u8);
-        let rank_num: u8 = 7 - ((rank_char as u8) - ('1' as u8));
+        let file_num: u8 = (file_char as u8) - b'a';
+        let rank_num: u8 = 7 - (rank_char as u8) - b'1';
 
         Some(Square(rank_num * 8 + file_num))
     }
@@ -144,8 +141,8 @@ impl Square {
         let file_num = self.file();
         let rank_num = self.rank();
 
-        let file_char = char::from(file_num + 'a' as u8);
-        let rank_char = char::from(rank_num + '1' as u8);
+        let file_char = char::from(file_num + b'a');
+        let rank_char = char::from(rank_num + b'1');
 
         res.push(file_char);
         res.push(rank_char);
@@ -380,6 +377,18 @@ impl Piece {
 
     pub const fn as_index(self) -> usize {
         self.0 as usize
+    }
+
+    pub const fn as_nnue_index(self) -> usize {
+        match self {
+            Self::PAWN => 0,
+            Self::KNIGHT => 1,
+            Self::BISHOP => 2,
+            Self::ROOK => 3,
+            Self::QUEEN => 4,
+            Self::KING => 5,
+            _ => panic!("invalid"),
+        }
     }
 
     pub fn from_char(ch: char) -> Option<Self> {
@@ -637,11 +646,11 @@ impl Board {
     }
 
     pub fn can_ks_castle(&self) -> bool {
-        self.castle_rights.can_ks_castle(&self)
+        self.castle_rights.can_ks_castle(self)
     }
 
     pub fn can_qs_castle(&self) -> bool {
-        self.castle_rights.can_qs_castle(&self)
+        self.castle_rights.can_qs_castle(self)
     }
 
     fn toggle(&mut self, mask: Bitboard, piece: Piece, color: Color) {
@@ -836,21 +845,7 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        movegen::board_rep::{Board, Direction, Square},
-        movegen::perft,
-    };
-
-    #[test]
-    fn shifting_test() {
-        let bb = Square::B2.as_bitboard();
-        bb.print();
-        println!("---------------------");
-
-        for dir in Direction::LIST {
-            bb.shift(dir, 1).print();
-        }
-    }
+    use crate::{move_generation::board_rep::Board, move_generation::perft};
 
     #[test]
     fn fen_test() {

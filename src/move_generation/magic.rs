@@ -1,4 +1,4 @@
-use crate::movegen::board_rep::{Bitboard, Direction, Square};
+use crate::move_generation::board_rep::{Bitboard, Direction, Square};
 
 const TABLE_SIZE: usize = 107481;
 const ROOK_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
@@ -100,7 +100,7 @@ impl MagicHashTable {
 
 #[cfg(test)]
 mod tests {
-    use crate::movegen::{
+    use crate::move_generation::{
         attacks,
         board_rep::{Bitboard, Square},
     };

@@ -1,6 +1,6 @@
 use crate::{
     bitloop,
-    movegen::{
+    move_generation::{
         attacks,
         board_rep::{Bitboard, Board, Piece, Square},
         chess_move::{Flag, Move},
