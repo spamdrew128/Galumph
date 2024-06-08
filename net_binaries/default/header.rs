@@ -1,6 +1,7 @@
 /*
-    This file should list the parameters of the network.
-    If you input your own network, be sure to change this file.
+    Do not modify this header.
+    If you want to add your own net, do so in
+    the user folder, and modify the header there.
 */
 
 const INPUT_SIZE: usize = 64 * 6 * 2;

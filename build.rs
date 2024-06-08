@@ -41,7 +41,8 @@ fn copy_net_to_out_dir() {
                     continue;
                 }
 
-                copy_file(header_path, "header.rs").expect("\n!!!! EXPECTED VALID HEADER FILE !!!!\n\n");
+                copy_file(header_path, "header.rs")
+                    .expect("\n!!!! EXPECTED VALID HEADER FILE !!!!\n\n");
 
                 return true;
             }
