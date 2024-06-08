@@ -26,20 +26,21 @@ fn copy_file(from_path: PathBuf, name: &str) -> Result<u64, std::io::Error> {
 fn copy_net_to_out_dir() {
     fn try_from_dir(dir_paths: &mut ReadDir) -> bool {
         while let Some(Ok(dir_entry)) = dir_paths.next() {
-            let name = dir_entry
-                .file_name()
-                .into_string()
-                .expect("INVALID FILE NAME");
-            let mut path = dir_entry.path();
+            let path = dir_entry.path();
+            let mut header_path = path.clone();
+            header_path.pop();
+            header_path.push("header.rs");
 
-            if let Ok(bytes_read) = copy_file(path.clone(), name.as_str()) {
+            if path == header_path {
+                continue;
+            }
+
+            if let Ok(bytes_read) = copy_file(path, "net.bin") {
                 if bytes_read == 0 {
                     continue;
                 }
-
-                path.pop();
-                path.push("header.rs");
-                copy_file(path, "header.rs").expect("HEADER INVALID");
+                
+                copy_file(header_path, "header.rs").expect("HEADER INVALID");
 
                 return true;
             }
