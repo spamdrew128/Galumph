@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use bytemuck::{AnyBitPattern, NoUninit, Pod, Zeroable};
 
 use super::rng::Rng;
