@@ -1,4 +1,10 @@
-use crate::{move_generation::{board_rep::Board, perft::{test_postions, PerftTest}}, search::search_manager::SearchManager};
+use crate::{
+    move_generation::{
+        board_rep::Board,
+        perft::{test_postions, PerftTest},
+    },
+    search::search_manager::SearchManager,
+};
 
 pub fn run_bench() {
     let positions: Vec<PerftTest> = test_postions();
@@ -11,7 +17,7 @@ pub fn run_bench() {
     for pos in positions {
         let board = Board::from_fen(pos.fen);
         search_manager.update_board(&board);
-        nodes += search_manager.start_bench_search(5);
+        nodes += search_manager.start_bench_search(8);
     }
 
     let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros();

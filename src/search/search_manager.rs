@@ -29,7 +29,7 @@ pub fn set_stop_flag() {
     STOP_FLAG.store(true, Ordering::Relaxed);
 }
 
-pub fn clear_stop_flag() {
+fn clear_stop_flag() {
     STOP_FLAG.store(false, Ordering::Relaxed);
 }
 
@@ -80,13 +80,18 @@ impl SearchManager {
     }
 
     pub fn start_search(&mut self, config: &SearchConfig) {
-        self.searcher.go(&self.board, config);
+        clear_stop_flag();
+        self.searcher.go(&self.board, config, true);
+        clear_stop_flag();
     }
 
     pub fn start_bench_search(&mut self, depth: Depth) -> Nodes {
         let mut config = SearchConfig::new(0);
         config.limits.push(SearchLimit::Depth(depth));
-        self.searcher.go(&self.board, &config);
+
+        clear_stop_flag();
+        self.searcher.go(&self.board, &config, false);
+        clear_stop_flag();
 
         self.searcher.node_cnt
     }
@@ -194,7 +199,7 @@ impl Searcher {
         result
     }
 
-    fn go(&mut self, board: &Board, config: &SearchConfig) {
+    fn go(&mut self, board: &Board, config: &SearchConfig, report_info: bool) {
         self.reset_info();
 
         self.timer = None;
@@ -211,16 +216,19 @@ impl Searcher {
                 break;
             }
 
-            self.report_search_info(score, depth, stopwatch);
+            if report_info {
+                self.report_search_info(score, depth, stopwatch);
+            }
 
             best_move = self.pv_table.best_move();
             depth += 1;
         }
 
         assert_ne!(best_move, Move::NULL);
-        println!("bestmove {}", best_move.as_string());
 
-        set_stop_flag();
+        if report_info {
+            println!("bestmove {}", best_move.as_string());
+        }
     }
 
     fn out_of_time(&self) -> bool {

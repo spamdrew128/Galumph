@@ -9,7 +9,7 @@ mod util_macros;
 
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
-    
+
     let args: Vec<String> = std::env::args().collect();
     for arg in args {
         if arg == "bench" {
