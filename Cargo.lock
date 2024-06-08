@@ -3,6 +3,13 @@
 version = 3
 
 [[package]]
+name = "Galumph"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -20,13 +27,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "duna"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
 ]
 
 [[package]]

@@ -1,0 +1,26 @@
+/*
+    This file should list the parameters of the network.
+    If you input your own network, be sure to change this file.
+
+    ↓ ↓ ↓ DEFAULT NET PARAMS BELOW ↓ ↓ ↓
+
+    const INPUT_SIZE: usize = 64 * 6 * 2;
+    const L1_SIZE: usize = 64;
+
+    const L1_SCALE: i16 = 255;
+    const OUTPUT_SCALE: i16 = 64;
+
+    fn activation(sum: i16) -> i32 {
+        i32::from(sum.clamp(0, L1_SCALE))
+    }
+*/
+
+const INPUT_SIZE: usize = 64 * 6 * 2;
+const L1_SIZE: usize = 64;
+
+const L1_SCALE: i16 = 255;
+const OUTPUT_SCALE: i16 = 64;
+
+fn activation(sum: i16) -> i32 {
+    i32::from(sum.clamp(0, L1_SCALE))
+}

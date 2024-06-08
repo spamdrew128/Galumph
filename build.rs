@@ -28,6 +28,17 @@ fn get_existing_net_bytes() -> Vec<u8> {
     vec![]
 }
 
+fn copy_header() {
+    let mut path = std::env::current_dir().unwrap();
+    path.push("net_binary");
+    path.push("header.rs");
+
+    let mut out_dir: PathBuf = std::env::var("OUT_DIR").unwrap().into();
+    out_dir.push("header.rs");
+
+    std::fs::copy(path, out_dir).expect("HEADER IS MISSING!!!!");
+}
+
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
 
@@ -44,4 +55,6 @@ fn main() {
     } else {
         gen_output_file("net.bin", existing_nnue_bytes.as_slice());
     }
+
+    copy_header();
 }

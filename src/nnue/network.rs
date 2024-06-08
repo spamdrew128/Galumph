@@ -6,17 +6,10 @@ use crate::{
     search::constants::EvalScore,
 };
 
-// TODO: put these in some sort of header file or library :)
-const INPUT_SIZE: usize = Square::CNT as usize * Piece::CNT as usize * Color::CNT as usize;
-const L1_SIZE: usize = 64;
+// Include the network parameters from net_binary/header.rs
+include!(concat!(env!("OUT_DIR"), "/header.rs"));
 
-const L1_SCALE: i16 = 255;
-const OUTPUT_SCALE: i16 = 64;
-
-fn activation(sum: i16) -> i32 {
-    i32::from(sum.clamp(0, L1_SCALE))
-}
-
+// Include the network binary from net_binary/header.rs (or use the default)
 static NNUE: Network =
     unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/net.bin"))) };
 
