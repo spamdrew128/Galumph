@@ -6,10 +6,10 @@ use crate::{
     search::constants::EvalScore,
 };
 
-// Include the network parameters from net_binary/header.rs
+// Include the network parameters from header.rs
 include!(concat!(env!("OUT_DIR"), "/header.rs"));
 
-// Include the network binary from net_binary/header.rs (or use the default)
+// Include the network binary
 static NNUE: Network =
     unsafe { std::mem::transmute(*include_bytes!(concat!(env!("OUT_DIR"), "/net.bin"))) };
 

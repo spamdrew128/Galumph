@@ -82,6 +82,14 @@ impl SearchManager {
     pub fn start_search(&mut self, config: &SearchConfig) {
         self.searcher.go(&self.board, config);
     }
+
+    pub fn start_bench_search(&mut self, depth: Depth) -> Nodes {
+        let mut config = SearchConfig::new(0);
+        config.limits.push(SearchLimit::Depth(depth));
+        self.searcher.go(&self.board, &config);
+
+        self.searcher.node_cnt
+    }
 }
 
 #[derive(Debug, Clone)]
