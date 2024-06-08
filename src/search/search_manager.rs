@@ -108,6 +108,12 @@ impl Searcher {
         }
     }
 
+    fn reset_info(&mut self) {
+        self.best_move = Move::NULL;
+        self.seldepth = 0;
+        self.node_cnt = 0;
+    }
+
     fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
         let score_str = if score >= MATE_THRESHOLD {
             let ply = EVAL_MAX - score;
@@ -181,6 +187,8 @@ impl Searcher {
     }
 
     fn go(&mut self, board: &Board, config: &SearchConfig) {
+        self.reset_info();
+
         self.timer = None;
         self.init_search_timer(board.stm, config);
 
