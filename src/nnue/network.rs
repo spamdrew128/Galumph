@@ -8,7 +8,7 @@ use crate::{
 
 // TODO: put these in some sort of header file or library :)
 const INPUT_SIZE: usize = Square::CNT as usize * Piece::CNT as usize * Color::CNT as usize;
-const L1_SIZE: usize = 768;
+const L1_SIZE: usize = 64;
 
 const L1_SCALE: i16 = 255;
 const OUTPUT_SCALE: i16 = 64;
@@ -119,6 +119,7 @@ impl Accumulator {
         for (&sum, &weight) in their_sums.zip(their_weights) {
             eval += activation(sum) * i32::from(weight);
         }
+
         eval += EvalScore::from(NNUE.output_bias);
 
         (eval * 400) / i32::from(L1_SCALE * OUTPUT_SCALE)

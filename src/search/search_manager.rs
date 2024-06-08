@@ -10,7 +10,7 @@ use crate::{
         chess_move::Move,
         movegen::MovePicker,
     },
-    nnue::network::Accumulator,
+    nnue::eval::material_diff,
     search::constants::{
         Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
         MAX_PLY,
@@ -233,8 +233,9 @@ impl Searcher {
         self.seldepth = self.seldepth.max(ply);
 
         if depth == 0 || ply >= MAX_PLY {
-            let acc = Accumulator::from_pos(board);
-            return acc.evaluate(board.stm);
+            // let acc = Accumulator::from_pos(board);
+            // return acc.evaluate(board.stm);
+            return material_diff(board);
         }
 
         let in_check = board.in_check();
