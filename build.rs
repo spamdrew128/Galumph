@@ -28,15 +28,24 @@ fn get_existing_net_bytes() -> Vec<u8> {
     vec![]
 }
 
-fn copy_header() {
-    let mut path = std::env::current_dir().unwrap();
-    path.push("net_binary");
-    path.push("header.rs");
+fn copy_file(folder: &str, name: &str) -> Result<u64, std::io::Error> {
+    let mut from = std::env::current_dir().unwrap();
+    from.push(folder);
+    from.push(name);
 
     let mut out_dir: PathBuf = std::env::var("OUT_DIR").unwrap().into();
-    out_dir.push("header.rs");
+    out_dir.push(name);
 
-    std::fs::copy(path, out_dir).expect("HEADER IS MISSING!!!!");
+
+    std::fs::copy(from, out_dir)
+}
+
+fn copy_header() {
+    copy_file("net_binary", "header.rs").expect("HEADER IS MISSING!!!!");
+}
+
+fn copy_net() {
+    copy_file("net_binary", "header.rs").expect("HEADER IS MISSING!!!!");
 }
 
 fn main() {
