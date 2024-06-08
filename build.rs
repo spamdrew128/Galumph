@@ -27,6 +27,7 @@ fn copy_net_to_out_dir() {
     fn try_from_dir(dir_paths: &mut ReadDir) -> bool {
         while let Some(Ok(dir_entry)) = dir_paths.next() {
             let path = dir_entry.path();
+
             let mut header_path = path.clone();
             header_path.pop();
             header_path.push("header.rs");
@@ -39,8 +40,8 @@ fn copy_net_to_out_dir() {
                 if bytes_read == 0 {
                     continue;
                 }
-                
-                copy_file(header_path, "header.rs").expect("HEADER INVALID");
+
+                copy_file(header_path, "header.rs").expect("\n!!!! EXPECTED VALID  !!!!\n\n");
 
                 return true;
             }
