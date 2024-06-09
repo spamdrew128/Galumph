@@ -64,8 +64,9 @@ pub struct MovePicker {
 impl MovePicker {
     const SIZE: usize = u8::MAX as usize;
 
-    fn add(&mut self, mv: Move) {
+    fn add(&mut self, mv: Move, bonus: i16) {
         self.list[self.len].mv = mv;
+        self.list[self.len].score += bonus;
         self.len += 1;
     }
 
@@ -109,39 +110,45 @@ impl MovePicker {
         let king = board.piece_bb(Piece::KING, stm);
 
         into_moves!(|from| knights, |to| attacks::knight(from).and(filter), {
-            self.add(Move::new(to, from, flag));
+            self.add(Move::new(to, from, flag), 0);
         });
         into_moves!(
             |from| bishops,
             |to| attacks::bishop(from, occ).and(filter),
             {
-                self.add(Move::new(to, from, flag));
+                self.add(Move::new(to, from, flag), 0);
             }
         );
         into_moves!(|from| rooks, |to| attacks::rook(from, occ).and(filter), {
-            self.add(Move::new(to, from, flag));
+            self.add(Move::new(to, from, flag), 0);
         });
         into_moves!(|from| queens, |to| attacks::queen(from, occ).and(filter), {
-            self.add(Move::new(to, from, flag));
+            self.add(Move::new(to, from, flag), 0);
         });
         into_moves!(|from| king, |to| attacks::king(from).and(filter), {
-            self.add(Move::new(to, from, flag));
+            self.add(Move::new(to, from, flag), 0);
         });
 
         let pawns = board.piece_bb(Piece::PAWN, stm);
         let promo_pawns = board.promotable_pawns();
         let normal_pawns = pawns & !promo_pawns;
 
+        const NOISY_PROMO_BONUS: i16 =
+            Piece::MVV_VALS[Piece::QUEEN.as_index()] - Piece::MVV_VALS[Piece::PAWN.as_index()];
+
         into_moves!(
             |from| promo_pawns,
             |to| attacks::pawn(from, stm).and(opps),
             {
                 if NOISY {
-                    self.add(Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO));
+                    self.add(
+                        Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO),
+                        NOISY_PROMO_BONUS,
+                    );
                 } else {
-                    self.add(Move::new(to, from, Flag::KNIGHT_CAPTURE_PROMO));
-                    self.add(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO));
-                    self.add(Move::new(to, from, Flag::ROOK_CAPTURE_PROMO));
+                    self.add(Move::new(to, from, Flag::KNIGHT_CAPTURE_PROMO), 0);
+                    self.add(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO), 0);
+                    self.add(Move::new(to, from, Flag::ROOK_CAPTURE_PROMO), 0);
                 }
             }
         );
@@ -150,11 +157,11 @@ impl MovePicker {
         bitloop!(|to| promotion_moves, {
             let from = to.retreat(1, stm);
             if NOISY {
-                self.add(Move::new(to, from, Flag::QUEEN_PROMO));
+                self.add(Move::new(to, from, Flag::QUEEN_PROMO), NOISY_PROMO_BONUS);
             } else {
-                self.add(Move::new(to, from, Flag::KNIGHT_PROMO));
-                self.add(Move::new(to, from, Flag::BISHOP_PROMO));
-                self.add(Move::new(to, from, Flag::ROOK_PROMO));
+                self.add(Move::new(to, from, Flag::KNIGHT_PROMO), 0);
+                self.add(Move::new(to, from, Flag::BISHOP_PROMO), 0);
+                self.add(Move::new(to, from, Flag::ROOK_PROMO), 0);
             }
         });
 
@@ -163,14 +170,14 @@ impl MovePicker {
                 |from| normal_pawns,
                 |to| attacks::pawn(from, stm).and(opps),
                 {
-                    self.add(Move::new(to, from, Flag::CAPTURE));
+                    self.add(Move::new(to, from, Flag::CAPTURE), 0);
                 }
             );
 
             if let Some(ep_sq) = board.ep_sq {
                 let attackers = attacks::pawn(ep_sq, stm.flip()) & pawns;
                 bitloop!(|from| attackers, {
-                    self.add(Move::new(ep_sq, from, Flag::EP));
+                    self.add(Move::new(ep_sq, from, Flag::EP), 0);
                 });
             }
         } else {
@@ -179,20 +186,20 @@ impl MovePicker {
 
             bitloop!(|to| single_pushs, {
                 let from = to.retreat(1, stm);
-                self.add(Move::new(to, from, flag));
+                self.add(Move::new(to, from, flag), 0);
             });
 
             bitloop!(|to| double_pushes, {
                 let from = to.double_push_sq();
-                self.add(Move::new(to, from, Flag::DOUBLE_PUSH));
+                self.add(Move::new(to, from, Flag::DOUBLE_PUSH), 0);
             });
 
             let king_sq = board.king_sq();
             if board.can_ks_castle() {
-                self.add(Move::new_ks_castle(king_sq))
+                self.add(Move::new_ks_castle(king_sq), 0)
             }
             if board.can_qs_castle() {
-                self.add(Move::new_qs_castle(king_sq))
+                self.add(Move::new_qs_castle(king_sq), 0)
             }
         }
     }
