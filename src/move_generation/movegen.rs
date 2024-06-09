@@ -53,15 +53,18 @@ impl MovePicker {
         mv
     }
 
-    pub fn new(board: &Board) -> Self {
+    pub fn new<const PICK_QUIETS: bool>(board: &Board) -> Self {
         let mut res = Self {
             list: [ScoredMove::EMPTY; Self::SIZE],
             idx: 0,
             len: 0,
         };
         res.gen_moves::<true>(board);
-        res.gen_moves::<false>(board);
 
+        if PICK_QUIETS {
+            res.gen_moves::<false>(board);
+        }
+        
         res
     }
 
