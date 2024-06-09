@@ -8,7 +8,7 @@ use crate::{
         zobrist_stack::ZobristStack,
     },
     uci::{
-        setoption::{HashMb, Overhead, Threads},
+        setoption::{Hash, Overhead, Threads},
         uci_handler::kill_program,
     },
 };
@@ -27,7 +27,7 @@ pub enum UciCommand {
 
     // setoptions
     SetOptionOverHead(u32),
-    SetOptionHashMb(u32),
+    SetOptionHash(u32),
     SetOptionThreads(u32),
 }
 
@@ -146,8 +146,8 @@ impl UciCommand {
                     Overhead::STR => UciCommand::SetOptionOverHead(
                         parse_nonzero!(tokens, u32)?.clamp(Overhead::MIN, Overhead::MAX),
                     ),
-                    HashMb::STR => UciCommand::SetOptionHashMb(
-                        parse_nonzero!(tokens, u32)?.clamp(HashMb::MIN, HashMb::MAX),
+                    Hash::STR => UciCommand::SetOptionHash(
+                        parse_nonzero!(tokens, u32)?.clamp(Hash::MIN, Hash::MAX),
                     ),
                     Threads::STR => UciCommand::SetOptionThreads(
                         parse_nonzero!(tokens, u32)?.clamp(Threads::MIN, Threads::MAX),
