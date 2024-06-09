@@ -292,6 +292,7 @@ impl Searcher {
             if !is_legal {
                 continue;
             }
+            
             moves_played += 1;
             self.node_cnt += 1;
 
@@ -330,6 +331,65 @@ impl Searcher {
         }
 
         // TODO: use best_move for tt here
+        best_score
+    }
+
+    fn qsearch(
+        &mut self,
+        board: &Board,
+        ply: Ply,
+        mut alpha: EvalScore,
+        beta: EvalScore,
+    ) -> EvalScore {
+        self.seldepth = self.seldepth.max(ply);
+
+        let stand_pat = material_diff(board);
+        if stand_pat >= beta {
+            return stand_pat;
+        }
+
+        if stand_pat > alpha {
+            alpha = stand_pat;
+        }
+
+        let mut generator = MovePicker::new(&board);
+
+        let mut best_score = stand_pat;
+        let mut _best_move = Move::NULL;
+        while let Some(mv) =
+            generator.pick()
+        {
+            let mut next_board = board.clone();
+            let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
+            if !is_legal {
+                continue;
+            }
+
+            self.node_cnt += 1;
+
+            let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
+
+            self.zobrist_stack.pop();
+
+            if stop_flag_is_set() || self.out_of_time() { // TODO: try moving this above score
+                set_stop_flag();
+                return 0;
+            }
+
+            if score > best_score {
+                best_score = score;
+
+                if score > alpha {
+                    _best_move = mv;
+                    alpha = score;
+                }
+
+                if score >= beta {
+                    break;
+                }
+            }
+        }
+
         best_score
     }
 }
