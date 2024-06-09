@@ -16,6 +16,28 @@ macro_rules! into_moves {
     }};
 }
 
+const MVV_LVA: [[i16; (Piece::CNT + 1) as usize]; (Piece::CNT + 1) as usize] = {
+    // knight, bishop, rook, queen, pawn, king, none (for en passant)
+    let mut table: [[i16; (Piece::CNT + 1) as usize]; (Piece::CNT + 1) as usize] =
+        [[0; (Piece::CNT + 1) as usize]; (Piece::CNT + 1) as usize];
+
+    let mut a = 0;
+    while a < (Piece::CNT + 1) as usize {
+        let mut v = 0;
+        while v < (Piece::CNT + 1) as usize {
+            table[a][v] = Piece::MVV_VALS[v] - Piece::MVV_VALS[a];
+            v += 1;
+        }
+        a += 1;
+    }
+
+    table
+};
+
+const fn mvv_lva(attacker: Piece, victim: Piece) -> i16 {
+    MVV_LVA[attacker.as_index()][victim.as_index()]
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct ScoredMove {
     mv: Move,
@@ -64,7 +86,7 @@ impl MovePicker {
         if PICK_QUIETS {
             res.gen_moves::<false>(board);
         }
-        
+
         res
     }
 
@@ -170,6 +192,20 @@ impl MovePicker {
             }
             if board.can_qs_castle() {
                 self.add(Move::new_qs_castle(king_sq))
+            }
+        }
+    }
+
+    pub fn score_moves(&mut self, board: &Board) {
+        for elem in self.list.iter_mut().take(self.len) {
+            let mv = elem.mv;
+            // TODO: add staged movegen so you can remove this if/else conditional block
+            if mv.is_noisy() {
+                let attacker = board.piece_on_sq(mv.from());
+                let victim = board.piece_on_sq(mv.to());
+                elem.score = mvv_lva(attacker, victim);
+            } else {
+                elem.score = -100; // TODO: Unneeded after staged
             }
         }
     }

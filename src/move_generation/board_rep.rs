@@ -368,6 +368,16 @@ impl Piece {
         Self::KING,
     ];
 
+    pub const MVV_VALS: [i16; (Piece::CNT + 1) as usize] = [
+        3, // KNIGHT
+        4, // BISHOP
+        5, // ROOK
+        9, // QUEEN
+        1, // PAWN
+        0, // KING
+        1, // NONE (for EP and non-cap promo)
+    ];
+
     pub const fn new(data: u8) -> Self {
         Self(data)
     }

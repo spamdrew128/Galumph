@@ -354,9 +354,7 @@ impl Searcher {
 
         let mut best_score = stand_pat;
         let mut _best_move = Move::NULL;
-        while let Some(mv) =
-            generator.pick()
-        {
+        while let Some(mv) = generator.pick() {
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {
@@ -369,7 +367,8 @@ impl Searcher {
 
             self.zobrist_stack.pop();
 
-            if stop_flag_is_set() || self.out_of_time() { // TODO: try moving this above score
+            if stop_flag_is_set() || self.out_of_time() {
+                // TODO: try moving this above score
                 set_stop_flag();
                 return 0;
             }
