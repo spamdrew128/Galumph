@@ -98,6 +98,8 @@ impl UciHandler {
                     config.limits.push(SearchLimit::Standard);
                 }
 
+                search_manager::clear_stop_flag();
+                
                 thread::scope(|s| {
                     s.spawn(|| {
                         self.search_manager.start_search(&config);

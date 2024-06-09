@@ -29,7 +29,7 @@ pub fn set_stop_flag() {
     STOP_FLAG.store(true, Ordering::Relaxed);
 }
 
-fn clear_stop_flag() {
+pub fn clear_stop_flag() {
     STOP_FLAG.store(false, Ordering::Relaxed);
 }
 
@@ -80,9 +80,7 @@ impl SearchManager {
     }
 
     pub fn start_search(&mut self, config: &SearchConfig) {
-        clear_stop_flag();
         self.searcher.go(&self.board, config, true);
-        clear_stop_flag();
     }
 
     pub fn start_bench_search(&mut self, depth: Depth) -> Nodes {
@@ -91,7 +89,6 @@ impl SearchManager {
 
         clear_stop_flag();
         self.searcher.go(&self.board, &config, false);
-        clear_stop_flag();
 
         self.searcher.node_cnt
     }
@@ -223,6 +220,7 @@ impl Searcher {
             best_move = self.pv_table.best_move();
             depth += 1;
         }
+        set_stop_flag();
 
         assert_ne!(best_move, Move::NULL);
 
