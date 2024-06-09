@@ -272,7 +272,7 @@ impl Searcher {
         while let Some(mv) = move_picker.pick() {
             let mut new_board = board.clone();
 
-            let is_legal = new_board.try_play_move(mv);
+            let is_legal = new_board.simple_try_play(mv);
             if !is_legal {
                 continue;
             }

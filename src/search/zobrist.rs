@@ -22,6 +22,8 @@ const KEYS: ZobristKeys = unsafe {
 pub struct ZobristHash(u64);
 
 impl ZobristHash {
+    pub const EMPTY: Self = Self(0);
+
     pub fn hash_piece(&mut self, color: Color, piece: Piece, sq: Square) {
         self.0 ^= KEYS.pieces[color.as_index()][piece.as_index()][sq.as_index()];
     }
@@ -60,36 +62,6 @@ impl ZobristHash {
         }
 
         hash
-    }
-
-    pub const fn incremental_update_base(board: &Board) -> Self {
-        let mut hash: u64 = KEYS.black_to_move;
-
-        hash ^= KEYS.castling[board.castle_rights.as_index()];
-
-        if let Some(ep_sq) = board.ep_sq {
-            hash ^= KEYS.ep_file[ep_sq.file() as usize];
-        }
-
-        Self(hash)
-    }
-
-    pub const fn nullmove_base(board: &Board) -> Self {
-        let mut hash: u64 = KEYS.black_to_move;
-
-        if let Some(ep_sq) = board.ep_sq {
-            hash ^= KEYS.ep_file[ep_sq.file() as usize];
-        }
-
-        Self(hash)
-    }
-
-    pub const fn as_u64(self) -> u64 {
-        self.0
-    }
-
-    pub const fn as_usize(self) -> usize {
-        self.0 as usize
     }
 }
 
@@ -132,10 +104,10 @@ mod tests {
             let mut board_a = board.clone();
             let mut board_b = board.clone();
             for mv in moves_a {
-                board_a.try_play_move(Move::from_str(mv, &board_a).unwrap());
+                board_a.simple_try_play(Move::from_str(mv, &board_a).unwrap());
             }
             for mv in moves_b {
-                board_b.try_play_move(Move::from_str(mv, &board_b).unwrap());
+                board_b.simple_try_play(Move::from_str(mv, &board_b).unwrap());
             }
 
             assert_eq!(ZobristHash::complete(&board_a), ZobristHash::complete(&board_b), "Test {}", i + 1);

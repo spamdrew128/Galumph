@@ -1,10 +1,8 @@
 use crate::{
-    bb_from_squares, bitloop,
-    move_generation::{
+    bb_from_squares, bitloop, move_generation::{
         attacks,
         chess_move::{Flag, Move},
-    },
-    tuple_constants_enum,
+    }, search::{zobrist::ZobristHash, zobrist_stack::ZobristStack}, tuple_constants_enum
 };
 use std::{
     char,
@@ -658,7 +656,7 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
-    pub fn try_play_move(&mut self, mv: Move) -> bool {
+    pub fn try_play_move(&mut self, mv: Move, zobrist_stack: &mut ZobristStack) -> bool {
         let stm = self.stm;
 
         let to_sq = mv.to();
@@ -729,7 +727,14 @@ impl Board {
             self.halfmoves = 0;
         }
 
+        zobrist_stack.push(ZobristHash::complete(self)); // TODO: make this use incremental updates
+
         true
+    }
+
+    pub fn simple_try_play(&mut self, mv: Move) -> bool {
+        let mut zobrist_stack = ZobristStack::new(self);
+        self.try_play_move(mv, &mut zobrist_stack)
     }
 
     pub fn from_fen(fen: &str) -> Self {

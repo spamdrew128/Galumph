@@ -107,7 +107,7 @@ impl UciCommand {
 
                 for s in tokens.by_ref() {
                     if let Some(mv) = Move::from_str(s, &board) {
-                        board.try_play_move(mv);
+                        board.simple_try_play(mv);
                     }
                 }
                 res = UciCommand::Position(board);
@@ -180,8 +180,8 @@ mod tests {
         let uci = "position fen rnbq1bnr/ppppkppp/8/1B2p3/4P3/8/PPPP1PPP/RNBQK1NR w KQ - 2 3 moves h2h4 e7f6";
         let mut expected =
             Board::from_fen("rnbq1bnr/ppppkppp/8/1B2p3/4P3/8/PPPP1PPP/RNBQK1NR w KQ - 2 3");
-        expected.try_play_move(Move::from_str("h2h4", &expected).unwrap());
-        expected.try_play_move(Move::from_str("e7f6", &expected).unwrap());
+        expected.simple_try_play(Move::from_str("h2h4", &expected).unwrap());
+        expected.simple_try_play(Move::from_str("e7f6", &expected).unwrap());
 
         assert_eq!(
             UciCommand::Position(expected),
