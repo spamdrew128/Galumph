@@ -19,7 +19,7 @@ pub fn run_bench() {
         let zobrist_stack = ZobristStack::new(&board);
 
         search_manager.update_state(&board, &zobrist_stack);
-        nodes += search_manager.start_bench_search(8);
+        nodes += search_manager.start_bench_search(5);
     }
 
     let nps = (u128::from(nodes) * 1_000_000) / stopwatch.elapsed().as_micros();
