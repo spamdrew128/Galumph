@@ -3,7 +3,7 @@ use crate::{
         board_rep::Board,
         perft::{test_postions, PerftTest},
     },
-    search::search_manager::SearchManager,
+    search::{search_manager::SearchManager, zobrist_stack::ZobristStack},
 };
 
 pub fn run_bench() {
@@ -16,7 +16,9 @@ pub fn run_bench() {
 
     for pos in positions {
         let board = Board::from_fen(pos.fen);
-        search_manager.update_board(&board);
+        let zobrist_stack = ZobristStack::new(&board);
+
+        search_manager.update_state(&board, &zobrist_stack);
         nodes += search_manager.start_bench_search(8);
     }
 

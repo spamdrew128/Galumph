@@ -4,6 +4,7 @@ use crate::{
         attacks,
         chess_move::{Flag, Move},
     },
+    search::{zobrist::ZobristHash, zobrist_stack::ZobristStack},
     tuple_constants_enum,
 };
 use std::{
@@ -537,7 +538,7 @@ impl CastleRights {
         true
     }
 
-    const fn as_index(self) -> usize {
+    pub const fn as_index(self) -> usize {
         self.0 as usize
     }
 
@@ -658,7 +659,7 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
-    pub fn try_play_move(&mut self, mv: Move) -> bool {
+    pub fn try_play_move(&mut self, mv: Move, zobrist_stack: &mut ZobristStack) -> bool {
         let stm = self.stm;
 
         let to_sq = mv.to();
@@ -729,7 +730,18 @@ impl Board {
             self.halfmoves = 0;
         }
 
+        zobrist_stack.push(ZobristHash::complete(self)); // TODO: make this use incremental updates
+
         true
+    }
+
+    pub const fn fifty_move_draw(&self) -> bool {
+        self.halfmoves > 100
+    }
+
+    pub fn simple_try_play(&mut self, mv: Move) -> bool {
+        let mut zobrist_stack = ZobristStack::new(self);
+        self.try_play_move(mv, &mut zobrist_stack)
     }
 
     pub fn from_fen(fen: &str) -> Self {

@@ -1,4 +1,5 @@
 use build_script_stuff::magic_builder::get_magic_bytes;
+use build_script_stuff::zobrist_builder::get_zobrist_bytes;
 
 use std::fs::File;
 use std::fs::ReadDir;
@@ -85,6 +86,10 @@ fn main() {
     let magic_bytes = get_magic_bytes();
     gen_output_file("magic_init.bin", magic_bytes.as_slice());
 
-    // NNUE file generation
+    // Zobrist key generation
+    let zobrist_bytes = get_zobrist_bytes();
+    gen_output_file("zobrist_init.bin", zobrist_bytes.as_slice());
+
+    // Copy NNUE file
     copy_net_to_out_dir();
 }

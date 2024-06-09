@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-use super::{pv_table::PvTable, search_timer::SearchTimer};
+use super::{pv_table::PvTable, search_timer::SearchTimer, zobrist_stack::ZobristStack};
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -75,8 +75,9 @@ impl SearchManager {
         }
     }
 
-    pub fn update_board(&mut self, board: &Board) {
+    pub fn update_state(&mut self, board: &Board, zobrist_stack: &ZobristStack) {
         self.board = board.clone();
+        self.searcher.zobrist_stack = zobrist_stack.clone();
     }
 
     pub fn start_search(&mut self, config: &SearchConfig) {
@@ -97,6 +98,7 @@ impl SearchManager {
 #[derive(Debug, Clone)]
 struct Searcher {
     timer: Option<SearchTimer>,
+    zobrist_stack: ZobristStack,
 
     // info
     pv_table: PvTable,
@@ -111,6 +113,7 @@ impl Searcher {
     fn new() -> Self {
         Self {
             timer: None,
+            zobrist_stack: ZobristStack::new(&Board::from_fen(START_FEN)),
             pv_table: PvTable::new(),
             best_move: Move::NULL,
             seldepth: 0,
@@ -254,13 +257,28 @@ impl Searcher {
         self.pv_table.set_length(ply);
         self.seldepth = self.seldepth.max(ply);
 
+        let in_check = board.in_check();
+        let is_drawn =
+            self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
+
+        if !IS_ROOT {
+            if is_drawn {
+                return 0;
+            }
+
+            // MATE DISTANCE PRUNING
+            let mate_alpha = alpha.max(i32::from(ply) - EVAL_MAX);
+            let mate_beta = beta.min(EVAL_MAX - (i32::from(ply) + 1));
+            if mate_alpha >= mate_beta {
+                return mate_alpha;
+            }
+        }
+
         if depth == 0 || ply >= MAX_PLY {
             // let acc = Accumulator::from_pos(board);
             // return acc.evaluate(board.stm);
             return material_diff(board);
         }
-
-        let in_check = board.in_check();
 
         let mut best_score = -INF;
         let mut _best_move = Move::NULL;
@@ -270,7 +288,7 @@ impl Searcher {
         while let Some(mv) = move_picker.pick() {
             let mut new_board = board.clone();
 
-            let is_legal = new_board.try_play_move(mv);
+            let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {
                 continue;
             }
@@ -278,6 +296,8 @@ impl Searcher {
             self.node_cnt += 1;
 
             let score = -self.negamax::<false>(&new_board, depth - 1, ply + 1, -beta, -alpha);
+
+            self.zobrist_stack.pop();
 
             if stop_flag_is_set() || self.out_of_time() {
                 set_stop_flag();
