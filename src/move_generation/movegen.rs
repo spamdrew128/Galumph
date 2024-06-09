@@ -71,7 +71,18 @@ impl MovePicker {
     }
 
     fn take(&mut self) -> Move {
-        let mv = self.list[self.idx].mv;
+        let mut best_index = self.idx;
+        let mut best_score = self.list[self.idx].score;
+        for i in (self.idx + 1)..self.len {
+            let score = self.list[i].score;
+            if score > best_score {
+                best_score = score;
+                best_index = i;
+            }
+        }
+
+        let mv = self.list[best_index].mv;
+        self.list.swap(self.idx, best_index);
         self.idx += 1;
         mv
     }
