@@ -350,7 +350,7 @@ impl Searcher {
             alpha = stand_pat;
         }
 
-        let mut generator = MovePicker::new::<false>(&board);
+        let mut generator = MovePicker::new::<false>(board);
 
         let mut best_score = stand_pat;
         let mut _best_move = Move::NULL;

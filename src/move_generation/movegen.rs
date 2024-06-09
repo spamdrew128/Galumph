@@ -82,6 +82,7 @@ impl MovePicker {
             len: 0,
         };
         res.gen_moves::<true>(board);
+        res.score_noisy(board);
 
         if PICK_QUIETS {
             res.gen_moves::<false>(board);
@@ -196,7 +197,7 @@ impl MovePicker {
         }
     }
 
-    pub fn score_moves(&mut self, board: &Board) {
+    pub fn score_noisy(&mut self, board: &Board) {
         for elem in self.list.iter_mut().take(self.len) {
             let mv = elem.mv;
             // TODO: add staged movegen so you can remove this if/else conditional block
