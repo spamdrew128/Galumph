@@ -1,8 +1,11 @@
 use crate::{
-    bb_from_squares, bitloop, move_generation::{
+    bb_from_squares, bitloop,
+    move_generation::{
         attacks,
         chess_move::{Flag, Move},
-    }, search::{zobrist::ZobristHash, zobrist_stack::ZobristStack}, tuple_constants_enum
+    },
+    search::{zobrist::ZobristHash, zobrist_stack::ZobristStack},
+    tuple_constants_enum,
 };
 use std::{
     char,

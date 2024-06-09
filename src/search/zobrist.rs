@@ -1,4 +1,7 @@
-use crate::{bitloop, move_generation::board_rep::{Board, CastleRights, Color, Piece, Square}};
+use crate::{
+    bitloop,
+    move_generation::board_rep::{Board, CastleRights, Color, Piece, Square},
+};
 
 const NUM_CASTLING_CONFIGURATIONS: usize = 16;
 const NUM_FILES: usize = 8;
