@@ -17,6 +17,12 @@ use crate::{
     },
 };
 
+// for testing only
+fn temp_eval(board: &Board) -> EvalScore {
+    let acc = crate::nnue::network::Accumulator::from_pos(board);
+    acc.evaluate(board.stm)
+}
+
 use super::{pv_table::PvTable, search_timer::SearchTimer, zobrist_stack::ZobristStack};
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
@@ -341,7 +347,7 @@ impl Searcher {
     ) -> EvalScore {
         self.seldepth = self.seldepth.max(ply);
 
-        let stand_pat = material_diff(board);
+        let stand_pat = temp_eval(board);
         if stand_pat >= beta {
             return stand_pat;
         }
