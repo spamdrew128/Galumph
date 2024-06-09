@@ -537,7 +537,7 @@ impl CastleRights {
         true
     }
 
-    const fn as_index(self) -> usize {
+    pub const fn as_index(self) -> usize {
         self.0 as usize
     }
 
