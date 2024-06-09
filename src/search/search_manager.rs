@@ -283,7 +283,7 @@ impl Searcher {
         let mut best_score = -INF;
         let mut _best_move = Move::NULL;
 
-        let mut move_picker = MovePicker::new(board);
+        let mut move_picker = MovePicker::new::<true>(board);
         let mut moves_played = 0;
         while let Some(mv) = move_picker.pick() {
             let mut new_board = board.clone();
@@ -292,7 +292,7 @@ impl Searcher {
             if !is_legal {
                 continue;
             }
-            
+
             moves_played += 1;
             self.node_cnt += 1;
 
@@ -352,7 +352,7 @@ impl Searcher {
             alpha = stand_pat;
         }
 
-        let mut generator = MovePicker::new(&board);
+        let mut generator = MovePicker::new::<false>(&board);
 
         let mut best_score = stand_pat;
         let mut _best_move = Move::NULL;

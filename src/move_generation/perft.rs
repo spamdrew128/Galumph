@@ -173,7 +173,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
         return;
     }
 
-    let mut picker = MovePicker::new(board);
+    let mut picker = MovePicker::new::<true>(board);
 
     while let Some(mv) = picker.pick() {
         if !mv.is_pseudolegal(board) {
@@ -191,7 +191,7 @@ fn perft(board: &Board, depth: u16, count: &mut u64) {
 #[allow(dead_code)]
 pub fn split_perft(fen: &str, depth: u16) {
     let board = Board::from_fen(fen);
-    let mut picker = MovePicker::new(&board);
+    let mut picker = MovePicker::new::<true>(&board);
 
     while let Some(mv) = picker.pick() {
         let mut new_board = board.clone();
