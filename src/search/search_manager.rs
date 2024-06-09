@@ -275,9 +275,7 @@ impl Searcher {
         }
 
         if depth == 0 || ply >= MAX_PLY {
-            // let acc = Accumulator::from_pos(board);
-            // return acc.evaluate(board.stm);
-            return material_diff(board);
+            return self.qsearch(board, ply, alpha, beta);
         }
 
         let mut best_score = -INF;
