@@ -64,7 +64,7 @@ impl MovePicker {
         if PICK_QUIETS {
             res.gen_moves::<false>(board);
         }
-        
+
         res
     }
 
