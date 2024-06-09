@@ -735,6 +735,10 @@ impl Board {
         true
     }
 
+    pub const fn fifty_move_draw(&self) -> bool {
+        self.halfmoves > 100
+    }
+
     pub fn simple_try_play(&mut self, mv: Move) -> bool {
         let mut zobrist_stack = ZobristStack::new(self);
         self.try_play_move(mv, &mut zobrist_stack)

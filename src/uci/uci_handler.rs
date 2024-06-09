@@ -77,7 +77,9 @@ impl UciHandler {
             }
             IsReady => println!("readyok"),
             UciNewGame => self.search_manager = SearchManager::new(),
-            Position(board) => self.search_manager.update_board(&board),
+            Position(board, zobrist_stack) => {
+                self.search_manager.update_state(&board, &zobrist_stack)
+            }
             Go(args) => {
                 let mut config = SearchConfig::new(self.overhead);
 

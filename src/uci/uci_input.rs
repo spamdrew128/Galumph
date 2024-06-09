@@ -3,7 +3,10 @@ use crate::{
         board_rep::{Board, Color, START_FEN},
         chess_move::Move,
     },
-    search::constants::{Depth, Milliseconds, Nodes},
+    search::{
+        constants::{Depth, Milliseconds, Nodes},
+        zobrist_stack::ZobristStack,
+    },
     uci::{
         setoption::{HashMb, Overhead, Threads},
         uci_handler::kill_program,
@@ -19,7 +22,7 @@ pub enum UciCommand {
     Uci,
     IsReady,
     UciNewGame,
-    Position(Board),
+    Position(Board, ZobristStack),
     Go(Vec<GoArg>),
 
     // setoptions
@@ -104,13 +107,14 @@ impl UciCommand {
                     _ => return Err(()),
                 };
                 let mut board = Board::from_fen(&fen);
+                let mut zobrist_stack = ZobristStack::new(&board);
 
                 for s in tokens.by_ref() {
                     if let Some(mv) = Move::from_str(s, &board) {
-                        board.simple_try_play(mv);
+                        board.try_play_move(mv, &mut zobrist_stack);
                     }
                 }
-                res = UciCommand::Position(board);
+                res = UciCommand::Position(board, zobrist_stack);
             }
             "go" => {
                 let mut arglist = vec![];
@@ -172,6 +176,7 @@ impl UciCommand {
 mod tests {
     use crate::{
         move_generation::{board_rep::Board, chess_move::Move},
+        search::zobrist_stack::ZobristStack,
         uci::uci_input::UciCommand,
     };
 
@@ -180,11 +185,19 @@ mod tests {
         let uci = "position fen rnbq1bnr/ppppkppp/8/1B2p3/4P3/8/PPPP1PPP/RNBQK1NR w KQ - 2 3 moves h2h4 e7f6";
         let mut expected =
             Board::from_fen("rnbq1bnr/ppppkppp/8/1B2p3/4P3/8/PPPP1PPP/RNBQK1NR w KQ - 2 3");
-        expected.simple_try_play(Move::from_str("h2h4", &expected).unwrap());
-        expected.simple_try_play(Move::from_str("e7f6", &expected).unwrap());
+        let mut expected_stack = ZobristStack::new(&expected);
+
+        expected.try_play_move(
+            Move::from_str("h2h4", &expected).unwrap(),
+            &mut expected_stack,
+        );
+        expected.try_play_move(
+            Move::from_str("e7f6", &expected).unwrap(),
+            &mut expected_stack,
+        );
 
         assert_eq!(
-            UciCommand::Position(expected),
+            UciCommand::Position(expected, expected_stack),
             UciCommand::interpret_stdin(&uci).unwrap()
         );
     }

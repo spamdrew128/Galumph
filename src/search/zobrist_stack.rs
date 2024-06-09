@@ -23,7 +23,7 @@ impl ZobristStack {
         self.zobrist_vec.push(new);
     }
 
-    pub fn revert_state(&mut self) {
+    pub fn pop(&mut self) {
         self.zobrist_vec.pop();
     }
 
