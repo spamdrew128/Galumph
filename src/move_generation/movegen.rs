@@ -251,18 +251,8 @@ impl MovePicker {
             let victim = board.piece_on_sq(mv.to());
             self.list[i].score = mvv_lva(attacker, victim);
 
-            if board.see(mv, attacker, victim, 0) {
-                // good capture
-                start += 1;
-            } else {
-                // bad capture
-                self.bad_captures += 1;
-                self.list.swap(i, end as usize);
-                end -= 1;
-            }
+            start += 1;
         }
-
-        self.limit -= self.bad_captures; // dont include bad captures in this stage
     }
 
     pub fn pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
