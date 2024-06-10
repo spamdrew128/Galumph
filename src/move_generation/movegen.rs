@@ -199,7 +199,7 @@ impl MovePicker {
         }
     }
 
-    pub fn pick<const PICK_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+    pub fn pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
@@ -208,7 +208,7 @@ impl MovePicker {
                     self.gen_moves::<true>(board);
                 }
                 MoveStage::QUIET => {
-                    if PICK_QUIETS {
+                    if INCLUDE_QUIETS {
                         self.gen_moves::<false>(board);
                     }
                 }
@@ -217,6 +217,11 @@ impl MovePicker {
         }
 
         Some(self.take())
+    }
+
+    pub fn first_legal_mv(board: &Board) -> Option<Move> {
+        let mut generator = Self::new();
+        generator.pick::<true>(board)
     }
 }
 

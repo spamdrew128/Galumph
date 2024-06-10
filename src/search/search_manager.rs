@@ -231,7 +231,10 @@ impl Searcher {
         }
         set_stop_flag();
 
-        assert_ne!(best_move, Move::NULL);
+        if best_move.is_null() {
+            eprintln!("WARNING: DID NOT COMPLETE DEPTH 1 SEARCH");
+            best_move = MovePicker::first_legal_mv(board).expect("NO LEGAL MOVES IN POSITION");
+        }
 
         if report_info {
             println!("bestmove {}", best_move.as_string());
