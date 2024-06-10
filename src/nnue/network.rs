@@ -113,9 +113,12 @@ impl Accumulator {
             eval += activation(sum) * i32::from(weight);
         }
 
+        // TODO: add this to the header
+        eval /= i32::from(L1_SCALE);
+
         eval += EvalScore::from(NNUE.output_bias);
 
-        (eval * 400) / i32::from(L1_SCALE * OUTPUT_SCALE)
+        (eval * 400) / (i32::from(L1_SCALE) * i32::from(OUTPUT_SCALE))
     }
 }
 
