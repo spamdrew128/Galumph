@@ -241,7 +241,7 @@ impl MovePicker {
     
     fn score_captures(&mut self, board: &Board) {
         let mut start = self.idx as i32;
-        let mut end = self.limit as i32 - 1;
+        let end = self.limit as i32 - 1;
 
         while start <= end {
             let i = start as usize;
@@ -295,7 +295,7 @@ mod tests {
         let mut generator = MovePicker::new();
         while let Some(mv) = generator.pick::<false>(&board) {
             let piece = board.piece_on_sq(mv.from());
-            counts[piece.as_idx()] += 1;
+            counts[piece.as_index()] += 1;
 
             if mv.is_promo() {
                 promo_count += 1;
@@ -306,12 +306,12 @@ mod tests {
             }
         }
 
-        assert_eq!(counts[Piece::PAWN.as_idx()], 6);
-        assert_eq!(counts[Piece::BISHOP.as_idx()], 1);
-        assert_eq!(counts[Piece::ROOK.as_idx()], 3);
-        assert_eq!(counts[Piece::QUEEN.as_idx()], 2);
-        assert_eq!(counts[Piece::KNIGHT.as_idx()], 2);
-        assert_eq!(counts[Piece::KING.as_idx()], 1);
+        assert_eq!(counts[Piece::PAWN.as_index()], 6);
+        assert_eq!(counts[Piece::BISHOP.as_index()], 1);
+        assert_eq!(counts[Piece::ROOK.as_index()], 3);
+        assert_eq!(counts[Piece::QUEEN.as_index()], 2);
+        assert_eq!(counts[Piece::KNIGHT.as_index()], 2);
+        assert_eq!(counts[Piece::KING.as_index()], 1);
         assert_eq!(promo_count, 2);
         assert_eq!(ep_count, 2);
     }
@@ -331,7 +331,7 @@ mod tests {
         while let Some(mv) = generator.pick::<true>(&board) {
             if !mv.is_noisy() {
                 let piece = board.piece_on_sq(mv.from());
-                counts[piece.as_idx()] += 1;
+                counts[piece.as_index()] += 1;
 
                 if mv.is_promo() {
                     promo_count += 1;
@@ -343,12 +343,12 @@ mod tests {
             }
         }
 
-        assert_eq!(counts[Piece::PAWN.as_idx()], 11);
-        assert_eq!(counts[Piece::BISHOP.as_idx()], 10);
-        assert_eq!(counts[Piece::ROOK.as_idx()], 5);
-        assert_eq!(counts[Piece::QUEEN.as_idx()], 7);
-        assert_eq!(counts[Piece::KNIGHT.as_idx()], 8);
-        assert_eq!(counts[Piece::KING.as_idx()], 3);
+        assert_eq!(counts[Piece::PAWN.as_index()], 11);
+        assert_eq!(counts[Piece::BISHOP.as_index()], 10);
+        assert_eq!(counts[Piece::ROOK.as_index()], 5);
+        assert_eq!(counts[Piece::QUEEN.as_index()], 7);
+        assert_eq!(counts[Piece::KNIGHT.as_index()], 8);
+        assert_eq!(counts[Piece::KING.as_index()], 3);
         assert_eq!(promo_count, 6);
         assert_eq!(castle_count, 1);
     }
