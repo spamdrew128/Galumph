@@ -101,12 +101,6 @@ impl MovePicker {
         self.limit += 1;
     }
 
-    fn take(&mut self) -> Move {
-        let mv = self.list[self.idx].mv;
-        self.idx += 1;
-        mv
-    }
-
     const fn stage_complete(&self) -> bool {
         self.idx >= self.limit
     }
@@ -222,7 +216,7 @@ impl MovePicker {
         }
     }
 
-    fn pick_move(&mut self) -> Move {
+    fn next_best_move(&mut self) -> Move {
         let mut best_idx = self.idx;
         let mut best_score = self.list[self.idx].score;
         for i in (self.idx + 1)..self.limit {
@@ -239,7 +233,8 @@ impl MovePicker {
         mv
     }
     
-    fn score_captures(&mut self, board: &Board) {
+    fn score_noisy(&mut self, board: &Board) {
+        // TODO: give bonus to promotions
         let mut start = self.idx as i32;
         let end = self.limit as i32 - 1;
 
@@ -262,6 +257,7 @@ impl MovePicker {
             match self.stage {
                 MoveStage::NOISY => {
                     self.gen_moves::<true>(board);
+                    self.score_noisy(board);
                 }
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
@@ -272,7 +268,7 @@ impl MovePicker {
             }
         }
 
-        Some(self.take())
+        Some(self.next_best_move())
     }
 
     pub fn first_legal_mv(board: &Board) -> Option<Move> {
