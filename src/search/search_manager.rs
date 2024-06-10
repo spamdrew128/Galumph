@@ -231,7 +231,10 @@ impl Searcher {
         }
         set_stop_flag();
 
-        assert_ne!(best_move, Move::NULL);
+        if best_move.is_null() {
+            let mut p = MovePicker::new::<true>(board);
+            best_move = p.pick().unwrap();
+        }
 
         if report_info {
             println!("bestmove {}", best_move.as_string());
