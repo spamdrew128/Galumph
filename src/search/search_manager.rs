@@ -232,8 +232,8 @@ impl Searcher {
         set_stop_flag();
 
         if best_move.is_null() {
-            let mut p = MovePicker::new::<true>(board);
-            best_move = p.pick().unwrap();
+            eprintln!("WARNING: DID NOT COMPLETE DEPTH 1 SEARCH");
+            best_move = MovePicker::first_legal_mv(board).expect("NO LEGAL MOVES IN POSITION");
         }
 
         if report_info {
@@ -290,9 +290,9 @@ impl Searcher {
         let mut best_score = -INF;
         let mut _best_move = Move::NULL;
 
-        let mut move_picker = MovePicker::new::<true>(board);
+        let mut move_picker = MovePicker::new();
         let mut moves_played = 0;
-        while let Some(mv) = move_picker.pick() {
+        while let Some(mv) = move_picker.pick::<true>(&board) {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -359,11 +359,11 @@ impl Searcher {
             alpha = stand_pat;
         }
 
-        let mut generator = MovePicker::new::<false>(&board);
+        let mut generator = MovePicker::new();
 
         let mut best_score = stand_pat;
         let mut _best_move = Move::NULL;
-        while let Some(mv) = generator.pick() {
+        while let Some(mv) = generator.pick::<false>(&board) {
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {
