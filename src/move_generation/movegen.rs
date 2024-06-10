@@ -5,6 +5,7 @@ use crate::{
         board_rep::{Bitboard, Board, Piece, Square},
         chess_move::{Flag, Move},
     },
+    tuple_constants_enum,
 };
 
 macro_rules! into_moves {
@@ -33,18 +34,48 @@ impl ScoredMove {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MoveStage(u8);
+
+impl MoveStage {
+    #[rustfmt::skip]
+    tuple_constants_enum!(Self,
+        START,
+        NOISY,
+        QUIET
+    );
+
+    const fn new(data: u8) -> Self {
+        Self(data)
+    }
+
+    fn increment(&mut self) {
+        self.0 += 1;
+    }
+}
+
 pub struct MovePicker {
     list: [ScoredMove; Self::SIZE],
+    stage: MoveStage,
     idx: usize,
-    len: usize,
+    limit: usize,
 }
 
 impl MovePicker {
     const SIZE: usize = u8::MAX as usize;
 
+    pub fn new() -> Self {
+        Self {
+            list: [ScoredMove::EMPTY; Self::SIZE],
+            stage: MoveStage::START,
+            idx: 0,
+            limit: 0,
+        }
+    }
+
     fn add(&mut self, mv: Move) {
-        self.list[self.len].mv = mv;
-        self.len += 1;
+        self.list[self.limit].mv = mv;
+        self.limit += 1;
     }
 
     fn take(&mut self) -> Move {
@@ -53,19 +84,13 @@ impl MovePicker {
         mv
     }
 
-    pub fn new<const PICK_QUIETS: bool>(board: &Board) -> Self {
-        let mut res = Self {
-            list: [ScoredMove::EMPTY; Self::SIZE],
-            idx: 0,
-            len: 0,
-        };
-        res.gen_moves::<true>(board);
+    const fn stage_complete(&self) -> bool {
+        self.idx >= self.limit
+    }
 
-        if PICK_QUIETS {
-            res.gen_moves::<false>(board);
-        }
-
-        res
+    fn advance_stage(&mut self) {
+        self.stage.increment();
+        self.idx = self.limit;
     }
 
     fn gen_moves<const NOISY: bool>(&mut self, board: &Board) {
@@ -174,11 +199,115 @@ impl MovePicker {
         }
     }
 
-    pub fn pick(&mut self) -> Option<Move> {
-        if self.idx < self.len {
-            Some(self.take())
-        } else {
-            None
+    pub fn pick<const PICK_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+        while self.stage_complete() {
+            self.advance_stage();
+
+            match self.stage {
+                MoveStage::NOISY => {
+                    self.gen_moves::<true>(board);
+                }
+                MoveStage::QUIET => {
+                    if PICK_QUIETS {
+                        self.gen_moves::<false>(board);
+                    }
+                }
+                _ => return None,
+            }
         }
+
+        Some(self.take())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn generates_noisy() {
+        use super::*;
+
+        let board = Board::from_fen("1n4K1/P2k2b1/4r1n1/PpPB4/5N2/bRq1r3/3P4/2Q5 w - b6 0 2");
+        let mut counts = [0; Piece::CNT as usize];
+        let mut promo_count = 0;
+        let mut ep_count = 0;
+
+        let mut generator = MovePicker::new();
+        while let Some(mv) = generator.pick::<false>(&board) {
+            let piece = board.piece_on_sq(mv.from());
+            counts[piece.as_index()] += 1;
+
+            if mv.is_promo() {
+                promo_count += 1;
+            }
+
+            if mv.flag() == Flag::EP {
+                ep_count += 1;
+            }
+        }
+
+        assert_eq!(counts[Piece::PAWN.as_index()], 6);
+        assert_eq!(counts[Piece::BISHOP.as_index()], 1);
+        assert_eq!(counts[Piece::ROOK.as_index()], 3);
+        assert_eq!(counts[Piece::QUEEN.as_index()], 2);
+        assert_eq!(counts[Piece::KNIGHT.as_index()], 2);
+        assert_eq!(counts[Piece::KING.as_index()], 1);
+        assert_eq!(promo_count, 2);
+        assert_eq!(ep_count, 2);
+    }
+
+    #[test]
+    fn generates_quiets() {
+        use super::*;
+
+        let board = Board::from_fen(
+            "r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/1nN2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0",
+        );
+        let mut counts = [0; Piece::CNT as usize];
+        let mut promo_count = 0;
+        let mut castle_count = 0;
+
+        let mut generator = MovePicker::new();
+        while let Some(mv) = generator.pick::<true>(&board) {
+            if !mv.is_noisy() {
+                let piece = board.piece_on_sq(mv.from());
+                counts[piece.as_index()] += 1;
+
+                if mv.is_promo() {
+                    promo_count += 1;
+                }
+
+                if mv.flag() == Flag::KS_CASTLE || mv.flag() == Flag::QS_CASTLE {
+                    castle_count += 1;
+                }
+            }
+        }
+
+        assert_eq!(counts[Piece::PAWN.as_index()], 11);
+        assert_eq!(counts[Piece::BISHOP.as_index()], 10);
+        assert_eq!(counts[Piece::ROOK.as_index()], 5);
+        assert_eq!(counts[Piece::QUEEN.as_index()], 7);
+        assert_eq!(counts[Piece::KNIGHT.as_index()], 8);
+        assert_eq!(counts[Piece::KING.as_index()], 3);
+        assert_eq!(promo_count, 6);
+        assert_eq!(castle_count, 1);
+    }
+
+    #[test]
+    fn correct_move_count() {
+        use super::*;
+
+        let board =
+            Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        let expected_count = 48;
+        let mut actual = 0;
+        let mut list = vec![];
+
+        let mut g = MovePicker::new();
+        while let Some(mv) = g.pick::<true>(&board) {
+            actual += 1;
+            assert!(!list.contains(&mv), "{} is duplicate", mv.as_string());
+            list.push(mv);
+        }
+        assert_eq!(expected_count, actual);
     }
 }

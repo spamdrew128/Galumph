@@ -287,9 +287,9 @@ impl Searcher {
         let mut best_score = -INF;
         let mut _best_move = Move::NULL;
 
-        let mut move_picker = MovePicker::new::<true>(board);
+        let mut move_picker = MovePicker::new();
         let mut moves_played = 0;
-        while let Some(mv) = move_picker.pick() {
+        while let Some(mv) = move_picker.pick::<true>(&board) {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -356,11 +356,11 @@ impl Searcher {
             alpha = stand_pat;
         }
 
-        let mut generator = MovePicker::new::<false>(&board);
+        let mut generator = MovePicker::new();
 
         let mut best_score = stand_pat;
         let mut _best_move = Move::NULL;
-        while let Some(mv) = generator.pick() {
+        while let Some(mv) = generator.pick::<false>(&board) {
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {
