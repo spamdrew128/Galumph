@@ -303,14 +303,15 @@ impl Searcher {
             moves_played += 1;
             self.node_cnt += 1;
 
-            let score = -self.negamax::<false>(&new_board, depth - 1, ply + 1, -beta, -alpha);
-
-            self.zobrist_stack.pop();
-
             if stop_flag_is_set() || self.out_of_time() {
+                self.zobrist_stack.pop();
                 set_stop_flag();
                 return 0;
             }
+
+            let score = -self.negamax::<false>(&new_board, depth - 1, ply + 1, -beta, -alpha);
+
+            self.zobrist_stack.pop();
 
             if score > best_score {
                 best_score = score;
@@ -372,15 +373,15 @@ impl Searcher {
 
             self.node_cnt += 1;
 
-            let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
-
-            self.zobrist_stack.pop();
-
             if stop_flag_is_set() || self.out_of_time() {
-                // TODO: try moving this above score
+                self.zobrist_stack.pop();
                 set_stop_flag();
                 return 0;
             }
+
+            let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
+
+            self.zobrist_stack.pop();
 
             if score > best_score {
                 best_score = score;
