@@ -604,6 +604,7 @@ impl Board {
     }
 
     pub fn piece_on_sq(&self, sq: Square) -> Piece {
+        // TODO: add redundant mailbox for this :p
         let bitset = sq.as_bitboard();
         for piece in Piece::LIST {
             if bitset.overlaps(self.pieces[piece.as_index()]) {

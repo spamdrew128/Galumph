@@ -5,7 +5,7 @@ use super::rng::Rng;
 #[derive(Debug)]
 #[repr(C)]
 struct ZobristKeys {
-    pieces: [[[u64; 64 as usize]; 6 as usize]; 2 as usize],
+    pieces: [[[u64; 64]; 6]; 2],
     castling: [u64; 16],
     ep_file: [u64; 8],
     black_to_move: u64,
@@ -14,7 +14,7 @@ struct ZobristKeys {
 impl ZobristKeys {
     fn new() -> Self {
         Self {
-            pieces: [[[0; 64 as usize]; 6 as usize]; 2 as usize],
+            pieces: [[[0; 64]; 6]; 2],
             castling: [0; 16],
             ep_file: [0; 8],
             black_to_move: 0,

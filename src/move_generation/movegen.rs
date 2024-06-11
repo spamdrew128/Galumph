@@ -17,6 +17,29 @@ macro_rules! into_moves {
     }};
 }
 
+const MVV_LVA: [[i16; (Piece::CNT + 1) as usize]; (Piece::CNT + 1) as usize] = {
+    // knight, bishop, rook, queen, pawn, king, none (for en passant)
+    let scores: [i16; (Piece::CNT + 1) as usize] = [3, 4, 5, 9, 1, 0, 1];
+    let mut result: [[i16; (Piece::CNT + 1) as usize]; (Piece::CNT + 1) as usize] =
+        [[0; (Piece::CNT + 1) as usize]; (Piece::CNT + 1) as usize];
+
+    let mut a = 0;
+    while a < (Piece::CNT + 1) as usize {
+        let mut v = 0;
+        while v < (Piece::CNT + 1) as usize {
+            result[a][v] = scores[v] - scores[a];
+            v += 1;
+        }
+        a += 1;
+    }
+
+    result
+};
+
+const fn mvv_lva(attacker: Piece, victim: Piece) -> i16 {
+    MVV_LVA[attacker.as_index()][victim.as_index()]
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct ScoredMove {
     mv: Move,
@@ -76,12 +99,6 @@ impl MovePicker {
     fn add(&mut self, mv: Move) {
         self.list[self.limit].mv = mv;
         self.limit += 1;
-    }
-
-    fn take(&mut self) -> Move {
-        let mv = self.list[self.idx].mv;
-        self.idx += 1;
-        mv
     }
 
     const fn stage_complete(&self) -> bool {
@@ -199,6 +216,40 @@ impl MovePicker {
         }
     }
 
+    fn next_best_move(&mut self) -> Move {
+        let mut best_idx = self.idx;
+        let mut best_score = self.list[self.idx].score;
+        for i in (self.idx + 1)..self.limit {
+            let score = self.list[i].score;
+            if score > best_score {
+                best_score = score;
+                best_idx = i;
+            }
+        }
+
+        let mv = self.list[best_idx].mv;
+        self.list.swap(self.idx, best_idx);
+        self.idx += 1;
+        mv
+    }
+    
+    fn score_noisy(&mut self, board: &Board) {
+        // TODO: give bonus to promotions
+        let mut start = self.idx as i32;
+        let end = self.limit as i32 - 1;
+
+        while start <= end {
+            let i = start as usize;
+            let mv = self.list[i].mv;
+
+            let attacker = board.piece_on_sq(mv.from());
+            let victim = board.piece_on_sq(mv.to());
+            self.list[i].score = mvv_lva(attacker, victim);
+
+            start += 1;
+        }
+    }
+
     pub fn pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
@@ -206,6 +257,7 @@ impl MovePicker {
             match self.stage {
                 MoveStage::NOISY => {
                     self.gen_moves::<true>(board);
+                    self.score_noisy(board);
                 }
                 MoveStage::QUIET => {
                     if INCLUDE_QUIETS {
@@ -216,7 +268,7 @@ impl MovePicker {
             }
         }
 
-        Some(self.take())
+        Some(self.next_best_move())
     }
 
     pub fn first_legal_mv(board: &Board) -> Option<Move> {
