@@ -9,3 +9,5 @@ pub type EvalScore = i32;
 pub const INF: EvalScore = (i16::MAX - 10) as i32;
 pub const EVAL_MAX: EvalScore = INF - 1;
 pub const MATE_THRESHOLD: EvalScore = EVAL_MAX - (MAX_PLY as i32);
+pub const TB_WIN_SCORE: EvalScore = MATE_THRESHOLD - 1000;
+pub const TB_LOSS_SCORE: EvalScore = -TB_WIN_SCORE;

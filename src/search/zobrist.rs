@@ -66,6 +66,14 @@ impl ZobristHash {
 
         hash
     }
+
+    pub fn as_u64(self) -> u64 {
+        self.0
+    }
+
+    pub fn as_usize(self) -> usize {
+        self.0 as usize
+    }
 }
 
 #[cfg(test)]

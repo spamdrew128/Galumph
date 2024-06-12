@@ -232,7 +232,7 @@ impl MovePicker {
         self.idx += 1;
         mv
     }
-    
+
     fn score_noisy(&mut self, board: &Board) {
         // TODO: give bonus to promotions
         let mut start = self.idx as i32;
