@@ -93,6 +93,11 @@ impl Move {
         self.flag() >= Flag::QUEEN_PROMO && self.flag() <= Flag::QUEEN_CAPTURE_PROMO
     }
 
+    // NOTE: THIS DOES NOT IMPLY THAT THE MOVE IS A NON-CAPTURE
+    pub fn is_quiet(self) -> bool {
+        !self.is_noisy()
+    }
+
     pub fn is_promo(self) -> bool {
         // very inefficient so probably avoid where speed matters :p
         self.flag() >= Flag::QUEEN_CAPTURE_PROMO

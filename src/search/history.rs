@@ -1,4 +1,7 @@
-use crate::move_generation::{board_rep::{Board, Color, Piece, Square}, chess_move::Move};
+use crate::move_generation::{
+    board_rep::{Board, Color, Piece, Square},
+    chess_move::Move,
+};
 
 use super::constants::{Depth, EvalScore};
 
@@ -41,6 +44,7 @@ impl History {
 
         let cutoff_move = quiets[quiets.len() - 1];
         self.update_history_score(board, cutoff_move, bonus); // only the cutoff move gets a positive bonus
+
         for &mv in quiets.iter().take(quiets.len() - 1) {
             self.update_history_score(board, mv, -bonus);
         }

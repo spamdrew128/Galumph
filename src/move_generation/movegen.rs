@@ -86,7 +86,7 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    const SIZE: usize = u8::MAX as usize;
+    pub const SIZE: usize = u8::MAX as usize;
 
     pub fn new() -> Self {
         Self {
