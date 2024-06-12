@@ -64,6 +64,7 @@ impl MoveStage {
     #[rustfmt::skip]
     tuple_constants_enum!(Self,
         START,
+        TT_MOVE,
         NOISY,
         QUIET
     );
@@ -250,11 +251,20 @@ impl MovePicker {
         }
     }
 
-    pub fn pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+    pub fn pick<const INCLUDE_QUIETS: bool>(
+        &mut self,
+        board: &Board,
+        tt_move: Move,
+    ) -> Option<Move> {
         while self.stage_complete() {
             self.advance_stage();
 
             match self.stage {
+                MoveStage::TT_MOVE => {
+                    if tt_move.is_pseudolegal(board) {
+                        return Some(tt_move);
+                    }
+                }
                 MoveStage::NOISY => {
                     self.gen_moves::<true>(board);
                     self.score_noisy(board);
@@ -271,9 +281,13 @@ impl MovePicker {
         Some(self.next_best_move())
     }
 
+    pub fn simple_pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+        self.pick::<INCLUDE_QUIETS>(board, Move::NULL)
+    }
+
     pub fn first_legal_mv(board: &Board) -> Option<Move> {
         let mut generator = Self::new();
-        generator.pick::<true>(board)
+        generator.simple_pick::<true>(board)
     }
 }
 
@@ -289,7 +303,7 @@ mod tests {
         let mut ep_count = 0;
 
         let mut generator = MovePicker::new();
-        while let Some(mv) = generator.pick::<false>(&board) {
+        while let Some(mv) = generator.simple_pick::<false>(&board) {
             let piece = board.piece_on_sq(mv.from());
             counts[piece.as_index()] += 1;
 
@@ -324,7 +338,7 @@ mod tests {
         let mut castle_count = 0;
 
         let mut generator = MovePicker::new();
-        while let Some(mv) = generator.pick::<true>(&board) {
+        while let Some(mv) = generator.simple_pick::<true>(&board) {
             if !mv.is_noisy() {
                 let piece = board.piece_on_sq(mv.from());
                 counts[piece.as_index()] += 1;
@@ -360,7 +374,7 @@ mod tests {
         let mut list = vec![];
 
         let mut g = MovePicker::new();
-        while let Some(mv) = g.pick::<true>(&board) {
+        while let Some(mv) = g.simple_pick::<true>(&board) {
             actual += 1;
             assert!(!list.contains(&mv), "{} is duplicate", mv.as_string());
             list.push(mv);

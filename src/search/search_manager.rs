@@ -292,7 +292,6 @@ impl Searcher {
         }
 
         self.pv_table.set_length(ply);
-        self.seldepth = self.seldepth.max(ply);
 
         let in_check = board.in_check();
         let is_drawn =
@@ -315,12 +314,22 @@ impl Searcher {
             return self.qsearch(board, ply, alpha, beta);
         }
 
+        self.seldepth = self.seldepth.max(ply);
+
+        // PROBE TT
+        let hash = self.zobrist_stack.current_hash();
+        let tt_move = if let Some(tt_entry) = tt.probe(hash) {
+            tt_entry.mv // TODO: add tt cutoffs
+        } else {
+            Move::NULL
+        };
+
         let mut best_score = -INF;
         let mut _best_move = Move::NULL;
 
         let mut move_picker = MovePicker::new();
         let mut moves_played = 0;
-        while let Some(mv) = move_picker.pick::<true>(board) {
+        while let Some(mv) = move_picker.pick::<true>(board, tt_move) {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -391,7 +400,7 @@ impl Searcher {
 
         let mut best_score = stand_pat;
         let mut _best_move = Move::NULL;
-        while let Some(mv) = generator.pick::<false>(board) {
+        while let Some(mv) = generator.simple_pick::<false>(board) {
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {

@@ -243,6 +243,10 @@ impl Bitboard {
         Self(!self.0)
     }
 
+    pub const fn without(self, rhs: Self) -> Self {
+        Self(self.0 & !rhs.0)
+    }
+
     pub const fn overlaps(self, rhs: Self) -> bool {
         self.and(rhs).not_empty()
     }
@@ -614,7 +618,7 @@ impl Board {
         Piece::NONE
     }
 
-    fn us(&self) -> Bitboard {
+    pub fn us(&self) -> Bitboard {
         self.all[self.stm as usize]
     }
 
