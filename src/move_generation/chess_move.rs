@@ -303,18 +303,24 @@ mod tests {
     fn is_pseudolegal_false_positives() {
         let positions: Vec<PerftTest> = test_postions();
 
+        fn all_pseudos(board: &Board) -> Vec<Move> {
+            let mut picker = MovePicker::new();
+            let mut res = vec![];
+            while let Some(mv) = picker.simple_pick::<true>(&board) {
+                res.push(mv);
+            }
+            res
+        }
+
         for pos1 in &positions {
             let board_1 = Board::from_fen(pos1.fen);
-            let mut b1_generator = MovePicker::new();
-            let mut actual_pseudos = vec![];
-            while let Some(mv) = b1_generator.simple_pick::<true>(&board_1) {
-                actual_pseudos.push(mv);
-            }
+            let actual_pseudos = all_pseudos(&board_1);
 
             for pos2 in &positions {
-                let mut b2_generator = MovePicker::new();
+                let mut picker = MovePicker::new();
                 let board_2 = Board::from_fen(pos2.fen);
-                while let Some(mv) = b2_generator.simple_pick::<true>(&board_2) {
+
+                while let Some(mv) = picker.simple_pick::<true>(&board_2) {
                     let expected = actual_pseudos.contains(&mv);
                     let actual = mv.is_pseudolegal(&board_1);
 
