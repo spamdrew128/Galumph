@@ -28,7 +28,7 @@ macro_rules! option_string {
 }
 
 new_option!(Overhead, 25, 1, 1000, "Overhead");
-new_option!(Hash, 25, 1, 8192, "Hash");
+new_option!(Hash, 32, 1, 8192, "Hash");
 new_option!(Threads, 1, 1, 128, "Threads");
 
 pub fn display_options() {
