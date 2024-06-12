@@ -238,7 +238,7 @@ impl Move {
                         if flag == Flag::NONE {
                             attacks::pawn_single_push(pawn, occupied, color)
                         } else {
-                            attacks::pawn(from, color)
+                            attacks::pawn_setwise(pawn, color)
                         }
                     }
                 };
@@ -261,7 +261,7 @@ impl Move {
                 // assume promotion
                 let pawn: Bitboard = from_bb & board.promotable_pawns();
                 let move_bb = if self.is_capture() {
-                    attacks::pawn(from, color)
+                    attacks::pawn_setwise(pawn, color)
                 } else {
                     attacks::pawn_single_push(pawn, occupied, color)
                 };

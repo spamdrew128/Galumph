@@ -83,6 +83,13 @@ pub fn pawn(sq: Square, color: Color) -> Bitboard {
     PAWN_ATTACKS[color.as_index()][sq.as_index()]
 }
 
+pub fn pawn_setwise(pawns: Bitboard, color: Color) -> Bitboard {
+    match color {
+        Color::White => pawns.shift(Direction::NE, 1) | pawns.shift(Direction::NW, 1),
+        Color::Black => pawns.shift(Direction::SE, 1) | pawns.shift(Direction::SW, 1)
+    }
+}
+
 pub fn pawn_single_push(pawns: Bitboard, occ: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.shift(Direction::N, 1) & !occ,
