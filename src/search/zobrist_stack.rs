@@ -15,7 +15,7 @@ impl ZobristStack {
     }
 
     // pub fn add_hash(&mut self, hash_base: ZobristHash) {
-    //     let new_hash = self.current_zobrist_hash().combine(hash_base);
+    //     let new_hash = self.current_hash().combine(hash_base);
     //     self.zobrist_vec.push(new_hash);
     // }
 
@@ -27,7 +27,7 @@ impl ZobristStack {
         self.zobrist_vec.pop();
     }
 
-    pub fn current_zobrist_hash(&self) -> ZobristHash {
+    pub fn current_hash(&self) -> ZobristHash {
         let len = self.zobrist_vec.len();
         self.zobrist_vec[len - 1]
     }
@@ -37,7 +37,7 @@ impl ZobristStack {
             return false;
         }
 
-        let current_hash = self.current_zobrist_hash();
+        let current_hash = self.current_hash();
         for &hash in self
             .zobrist_vec
             .iter()

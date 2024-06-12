@@ -15,6 +15,7 @@ use crate::{
         Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
         MAX_PLY,
     },
+    uci::setoption::Hash,
 };
 
 // for testing only
@@ -23,7 +24,12 @@ fn temp_eval(board: &Board) -> EvalScore {
     acc.evaluate(board.stm)
 }
 
-use super::{pv_table::PvTable, search_timer::SearchTimer, zobrist_stack::ZobristStack};
+use super::{
+    pv_table::PvTable,
+    search_timer::SearchTimer,
+    transposition_table::{TTFlag, TranspositionTable},
+    zobrist_stack::ZobristStack,
+};
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -71,6 +77,7 @@ impl SearchConfig {
 pub struct SearchManager {
     searcher: Searcher,
     board: Board,
+    tt: TranspositionTable,
 }
 
 impl SearchManager {
@@ -78,7 +85,16 @@ impl SearchManager {
         Self {
             searcher: Searcher::new(),
             board: Board::from_fen(START_FEN),
+            tt: TranspositionTable::new(Hash::DEFAULT as usize),
         }
+    }
+
+    pub fn newgame(&mut self) {
+        self.tt.reset_entries();
+    }
+
+    pub fn resize_tt(&mut self, megabytes: u32) {
+        self.tt = TranspositionTable::new(megabytes as usize);
     }
 
     pub fn update_state(&mut self, board: &Board, zobrist_stack: &ZobristStack) {
@@ -87,7 +103,7 @@ impl SearchManager {
     }
 
     pub fn start_search(&mut self, config: &SearchConfig) {
-        self.searcher.go(&self.board, config, true);
+        self.searcher.go(&self.board, &self.tt, config, true);
     }
 
     pub fn start_bench_search(&mut self, depth: Depth) -> Nodes {
@@ -95,7 +111,7 @@ impl SearchManager {
         config.limits.push(SearchLimit::Depth(depth));
 
         clear_stop_flag();
-        self.searcher.go(&self.board, &config, false);
+        self.searcher.go(&self.board, &self.tt, &config, false);
 
         self.searcher.node_cnt
     }
@@ -133,7 +149,13 @@ impl Searcher {
         self.node_cnt = 0;
     }
 
-    fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
+    fn report_search_info(
+        &self,
+        tt: &TranspositionTable,
+        score: EvalScore,
+        depth: Depth,
+        stopwatch: Instant,
+    ) {
         let score_str = if score >= MATE_THRESHOLD {
             let ply = EVAL_MAX - score;
             let score_value = (ply + 1) / 2;
@@ -153,9 +175,10 @@ impl Searcher {
         let nps = (u128::from(self.node_cnt) * 1_000_000) / elapsed.as_micros().max(1);
 
         println!(
-            "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {} pv {}",
+            "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
             self.node_cnt,
             self.seldepth,
+            tt.hashfull(),
             self.pv_table.pv_string()
         );
     }
@@ -187,7 +210,7 @@ impl Searcher {
         }
 
         if let Some(timer) = self.timer {
-            // TODO: replace with soft
+            // TODO: replace with soft tm
             if timer.is_hard_expired() {
                 return false;
             }
@@ -205,7 +228,13 @@ impl Searcher {
         result
     }
 
-    fn go(&mut self, board: &Board, config: &SearchConfig, report_info: bool) {
+    fn go(
+        &mut self,
+        board: &Board,
+        tt: &TranspositionTable,
+        config: &SearchConfig,
+        report_info: bool,
+    ) {
         self.reset_info();
 
         self.timer = None;
@@ -216,14 +245,14 @@ impl Searcher {
         let mut best_move = Move::NULL;
         let mut depth = 1;
         while self.continue_deepening(config, depth) {
-            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
+            let score = self.negamax::<true>(board, tt, depth, 0, -INF, INF);
 
             if stop_flag_is_set() {
                 break;
             }
 
             if report_info {
-                self.report_search_info(score, depth, stopwatch);
+                self.report_search_info(tt, score, depth, stopwatch);
             }
 
             best_move = self.pv_table.best_move();
@@ -232,7 +261,7 @@ impl Searcher {
         set_stop_flag();
 
         if best_move.is_null() {
-            eprintln!("WARNING: DID NOT COMPLETE DEPTH 1 SEARCH");
+            eprintln!("WARNING: SEARCH RETURNED NULLMOVE");
             best_move = MovePicker::first_legal_mv(board).expect("NO LEGAL MOVES IN POSITION");
         }
 
@@ -254,6 +283,7 @@ impl Searcher {
     fn negamax<const IS_ROOT: bool>(
         &mut self,
         board: &Board,
+        tt: &TranspositionTable,
         depth: Depth,
         ply: Ply,
         mut alpha: EvalScore,
@@ -264,9 +294,11 @@ impl Searcher {
         }
 
         self.pv_table.set_length(ply);
-        self.seldepth = self.seldepth.max(ply);
 
+        let old_alpha = alpha;
+        let _is_pv = beta != alpha + 1;
         let in_check = board.in_check();
+
         let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
@@ -287,12 +319,22 @@ impl Searcher {
             return self.qsearch(board, ply, alpha, beta);
         }
 
+        self.seldepth = self.seldepth.max(ply);
+
+        // PROBE TT
+        let hash = self.zobrist_stack.current_hash();
+        let tt_move = if let Some(tt_entry) = tt.probe(hash) {
+            tt_entry.mv // TODO: add tt cutoffs
+        } else {
+            Move::NULL
+        };
+
         let mut best_score = -INF;
-        let mut _best_move = Move::NULL;
+        let mut best_move = Move::NULL;
 
         let mut move_picker = MovePicker::new();
         let mut moves_played = 0;
-        while let Some(mv) = move_picker.pick::<true>(board) {
+        while let Some(mv) = move_picker.pick::<true>(board, tt_move) {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -303,7 +345,7 @@ impl Searcher {
             moves_played += 1;
             self.node_cnt += 1;
 
-            let score = -self.negamax::<false>(&new_board, depth - 1, ply + 1, -beta, -alpha);
+            let score = -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
 
             self.zobrist_stack.pop();
 
@@ -316,7 +358,7 @@ impl Searcher {
                 best_score = score;
 
                 if score > alpha {
-                    _best_move = mv;
+                    best_move = mv;
                     alpha = score;
 
                     self.pv_table.update(ply, mv);
@@ -337,7 +379,8 @@ impl Searcher {
             };
         }
 
-        // TODO: use best_move for tt here
+        let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        tt.store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 
@@ -363,7 +406,7 @@ impl Searcher {
 
         let mut best_score = stand_pat;
         let mut _best_move = Move::NULL;
-        while let Some(mv) = generator.pick::<false>(board) {
+        while let Some(mv) = generator.simple_pick::<false>(board) {
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
             if !is_legal {

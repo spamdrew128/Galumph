@@ -3,6 +3,8 @@ use crate::move_generation::{
     board_rep::{Board, Color, Piece, Square},
 };
 
+use super::board_rep::Bitboard;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Flag(u16);
 
@@ -190,14 +192,93 @@ impl Move {
         }
     }
 
-    pub fn is_pseudolegal(self, _board: &Board) -> bool {
-        true
+    pub fn is_pseudolegal(self, board: &Board) -> bool {
+        // we can't play null moves!
+        if self.is_null() {
+            return false;
+        }
+
+        let to = self.to();
+        let to_bb = to.as_bitboard();
+        let from = self.from();
+        let from_bb = from.as_bitboard();
+        let us = board.us();
+        let them = board.them();
+        let occupied = board.occupied();
+        let flag = self.flag();
+
+        // make sure to move a piece that is our color, and non-empty
+        if !from_bb.overlaps(us) {
+            return false;
+        }
+
+        // we actually need to capture an enemy piece if the move is a capture (and not en passant)
+        if self.is_capture() && flag != Flag::EP && !to_bb.overlaps(them) {
+            return false;
+        }
+
+        // if non-capture, we need to land on an unoccupied square
+        if !self.is_capture() && to_bb.overlaps(occupied) {
+            return false;
+        }
+
+        let piece = board.piece_on_sq(from);
+        let color = board.stm;
+        match flag {
+            Flag::NONE | Flag::CAPTURE => {
+                let moves_bb = match piece {
+                    Piece::KNIGHT => attacks::knight(from),
+                    Piece::KING => attacks::king(from),
+                    Piece::BISHOP => attacks::bishop(from, occupied),
+                    Piece::ROOK => attacks::rook(from, occupied),
+                    Piece::QUEEN => attacks::queen(from, occupied),
+                    _ => {
+                        // assume pawn
+                        let pawn: Bitboard = from_bb.without(board.promotable_pawns());
+                        if flag == Flag::NONE {
+                            attacks::pawn_single_push(pawn, occupied, color)
+                        } else {
+                            attacks::pawn_setwise(pawn, color)
+                        }
+                    }
+                };
+
+                to_bb.overlaps(moves_bb)
+            }
+            Flag::DOUBLE_PUSH => {
+                let single_push = attacks::pawn_single_push(from_bb, occupied, color);
+                let double_push = attacks::pawn_double_push(single_push, occupied, color);
+                (piece == Piece::PAWN) && to_bb.overlaps(double_push)
+            }
+            Flag::KS_CASTLE => board.can_ks_castle(),
+            Flag::QS_CASTLE => board.can_qs_castle(),
+            Flag::EP => board.ep_sq.map_or(false, |ep_sq| {
+                (piece == Piece::PAWN)
+                    && (ep_sq == to)
+                    && attacks::pawn(from, color).overlaps(ep_sq.as_bitboard())
+            }),
+            _ => {
+                // assume promotion
+                let pawn: Bitboard = from_bb & board.promotable_pawns();
+                let move_bb = if self.is_capture() {
+                    attacks::pawn_setwise(pawn, color)
+                } else {
+                    attacks::pawn_single_push(pawn, occupied, color)
+                };
+
+                to_bb.overlaps(move_bb)
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::move_generation::board_rep::{Piece, Square};
+    use crate::move_generation::{
+        board_rep::{Board, Piece, Square},
+        movegen::MovePicker,
+        perft::{test_postions, PerftTest},
+    };
 
     use super::{Flag, Move};
 
@@ -215,5 +296,44 @@ mod tests {
 
         assert!(mv.is_capture());
         assert!(mv.is_noisy());
+    }
+
+    #[test]
+    fn is_pseudolegal_false_positives() {
+        let positions: Vec<PerftTest> = test_postions();
+
+        fn all_pseudos(board: &Board) -> Vec<Move> {
+            let mut picker = MovePicker::new();
+            let mut res = vec![];
+            while let Some(mv) = picker.simple_pick::<true>(&board) {
+                res.push(mv);
+            }
+            res
+        }
+
+        for pos1 in &positions {
+            let board_1 = Board::from_fen(pos1.fen);
+            let actual_pseudos = all_pseudos(&board_1);
+
+            for pos2 in &positions {
+                let mut picker = MovePicker::new();
+                let board_2 = Board::from_fen(pos2.fen);
+
+                while let Some(mv) = picker.simple_pick::<true>(&board_2) {
+                    let expected = actual_pseudos.contains(&mv);
+                    let actual = mv.is_pseudolegal(&board_1);
+
+                    assert_eq!(
+                        expected,
+                        actual,
+                        "\nFen_1: {}\nFen_2: {}\nMove: {}\nFlag {}",
+                        board_1.as_fen(),
+                        board_2.as_fen(),
+                        mv.as_string(),
+                        mv.flag().0,
+                    );
+                }
+            }
+        }
     }
 }

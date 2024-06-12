@@ -76,7 +76,7 @@ impl UciHandler {
                 println!("uciok");
             }
             IsReady => println!("readyok"),
-            UciNewGame => self.search_manager = SearchManager::new(),
+            UciNewGame => self.search_manager.newgame(),
             Position(board, zobrist_stack) => {
                 self.search_manager.update_state(&board, &zobrist_stack)
             }
@@ -112,6 +112,7 @@ impl UciHandler {
             }
             Stop => eprintln!("Uneeded Stop: Not Searching"),
             SetOptionOverHead(time) => self.overhead = Milliseconds::from(time),
+            SetOptionHash(megabytes) => self.search_manager.resize_tt(megabytes),
             _ => eprintln!("Unrecognized Command"),
         };
     }
