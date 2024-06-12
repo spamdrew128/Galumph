@@ -111,6 +111,17 @@ impl MovePicker {
         self.idx = self.limit;
     }
 
+    fn filter_repeats(&mut self, repeat: Move) {
+        let start = self.idx;
+        for i in start..self.limit {
+            if self.list[i].mv == repeat {
+                self.list.swap(start, i);
+                self.idx += 1;
+                return;
+            }
+        }
+    }
+
     fn gen_moves<const NOISY: bool>(&mut self, board: &Board) {
         let opps = board.them();
         let occ = board.occupied();
@@ -267,6 +278,9 @@ impl MovePicker {
                 }
                 MoveStage::NOISY => {
                     self.gen_moves::<true>(board);
+                    if !tt_move.is_null() && tt_move.is_capture() {
+                        self.filter_repeats(tt_move);
+                    }
                     self.score_noisy(board);
                 }
                 MoveStage::QUIET => {

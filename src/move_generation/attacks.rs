@@ -86,7 +86,7 @@ pub fn pawn(sq: Square, color: Color) -> Bitboard {
 pub fn pawn_setwise(pawns: Bitboard, color: Color) -> Bitboard {
     match color {
         Color::White => pawns.shift(Direction::NE, 1) | pawns.shift(Direction::NW, 1),
-        Color::Black => pawns.shift(Direction::SE, 1) | pawns.shift(Direction::SW, 1)
+        Color::Black => pawns.shift(Direction::SE, 1) | pawns.shift(Direction::SW, 1),
     }
 }
 
