@@ -205,7 +205,6 @@ impl Move {
         let us = board.us();
         let them = board.them();
         let occupied = board.occupied();
-        let empty = !occupied;
         let flag = self.flag();
 
         // make sure to move a piece that is our color, and non-empty
@@ -237,7 +236,7 @@ impl Move {
                         // assume pawn
                         let pawn: Bitboard = from_bb.without(board.promotable_pawns());
                         if flag == Flag::NONE {
-                            attacks::pawn_single_push(pawn, empty, color)
+                            attacks::pawn_single_push(pawn, occupied, color)
                         } else {
                             attacks::pawn(from, color)
                         }
@@ -247,8 +246,8 @@ impl Move {
                 to_bb.overlaps(moves_bb)
             }
             Flag::DOUBLE_PUSH => {
-                let single_push = attacks::pawn_single_push(from_bb, empty, color);
-                let double_push = attacks::pawn_double_push(single_push, empty, color);
+                let single_push = attacks::pawn_single_push(from_bb, occupied, color);
+                let double_push = attacks::pawn_double_push(single_push, occupied, color);
                 (piece == Piece::PAWN) && to_bb.overlaps(double_push)
             }
             Flag::KS_CASTLE => board.can_ks_castle(),
@@ -264,7 +263,7 @@ impl Move {
                 let move_bb = if self.is_capture() {
                     attacks::pawn(from, color)
                 } else {
-                    attacks::pawn_single_push(pawn, empty, color)
+                    attacks::pawn_single_push(pawn, occupied, color)
                 };
 
                 to_bb.overlaps(move_bb)
