@@ -25,7 +25,7 @@ fn temp_eval(board: &Board) -> EvalScore {
 }
 
 use super::{
-    pv_table::PvTable, search_timer::SearchTimer, transposition_table::TranspositionTable,
+    pv_table::PvTable, search_timer::SearchTimer, transposition_table::{TTFlag, TranspositionTable},
     zobrist_stack::ZobristStack,
 };
 
@@ -293,7 +293,10 @@ impl Searcher {
 
         self.pv_table.set_length(ply);
 
+        let old_alpha = alpha;
+        let _is_pv = beta != alpha + 1;
         let in_check = board.in_check();
+
         let is_drawn =
             self.zobrist_stack.twofold_repetition(board.halfmoves) || board.fifty_move_draw();
 
@@ -325,7 +328,7 @@ impl Searcher {
         };
 
         let mut best_score = -INF;
-        let mut _best_move = Move::NULL;
+        let mut best_move = Move::NULL;
 
         let mut move_picker = MovePicker::new();
         let mut moves_played = 0;
@@ -353,7 +356,7 @@ impl Searcher {
                 best_score = score;
 
                 if score > alpha {
-                    _best_move = mv;
+                    best_move = mv;
                     alpha = score;
 
                     self.pv_table.update(ply, mv);
@@ -374,7 +377,8 @@ impl Searcher {
             };
         }
 
-        // TODO: use best_move for tt here
+        let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        tt.store(tt_flag, best_score, hash, ply, depth, best_move);
         best_score
     }
 
