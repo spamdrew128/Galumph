@@ -212,6 +212,7 @@ impl TranspositionTable {
         }
     }
 
+    // TODO: store hashfull in tt, and only update it outside of searches (should give speedup)
     pub fn hashfull(&self) -> i32 {
         let mut hash_full = 0;
         self.table.iter().take(1000).for_each(|x| {
@@ -239,6 +240,13 @@ impl TranspositionTable {
         }
 
         self.age += 1;
+    }
+
+    pub fn reset_entries(&mut self) {
+        self.table
+            .iter_mut()
+            .for_each(|x| *x = AtomicU64::default());
+        self.age = 0;
     }
 }
 

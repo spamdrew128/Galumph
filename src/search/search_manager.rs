@@ -14,7 +14,7 @@ use crate::{
     search::constants::{
         Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
         MAX_PLY,
-    },
+    }, uci::setoption::Hash,
 };
 
 // for testing only
@@ -23,7 +23,7 @@ fn temp_eval(board: &Board) -> EvalScore {
     acc.evaluate(board.stm)
 }
 
-use super::{pv_table::PvTable, search_timer::SearchTimer, zobrist_stack::ZobristStack};
+use super::{pv_table::PvTable, search_timer::SearchTimer, transposition_table::TranspositionTable, zobrist_stack::ZobristStack};
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -71,6 +71,7 @@ impl SearchConfig {
 pub struct SearchManager {
     searcher: Searcher,
     board: Board,
+    tt: TranspositionTable,
 }
 
 impl SearchManager {
@@ -78,7 +79,16 @@ impl SearchManager {
         Self {
             searcher: Searcher::new(),
             board: Board::from_fen(START_FEN),
+            tt: TranspositionTable::new(Hash::DEFAULT as usize),
         }
+    }
+
+    pub fn newgame(&mut self) {
+        self.tt.reset_entries();
+    }
+
+    pub fn resize_tt(&mut self, megabytes: u32) {
+        self.tt = TranspositionTable::new(megabytes as usize);
     }
 
     pub fn update_state(&mut self, board: &Board, zobrist_stack: &ZobristStack) {
