@@ -208,7 +208,7 @@ impl Searcher {
         }
 
         if let Some(timer) = self.timer {
-            // TODO: replace with soft
+            // TODO: replace with soft tm
             if timer.is_hard_expired() {
                 return false;
             }
@@ -259,7 +259,7 @@ impl Searcher {
         set_stop_flag();
 
         if best_move.is_null() {
-            eprintln!("WARNING: DID NOT COMPLETE DEPTH 1 SEARCH");
+            eprintln!("WARNING: SEARCH RETURNED NULLMOVE");
             best_move = MovePicker::first_legal_mv(board).expect("NO LEGAL MOVES IN POSITION");
         }
 
