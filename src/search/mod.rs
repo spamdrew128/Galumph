@@ -6,3 +6,4 @@ mod search_timer;
 mod transposition_table;
 pub(crate) mod zobrist;
 pub(crate) mod zobrist_stack;
+mod history;
