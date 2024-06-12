@@ -184,7 +184,7 @@ impl Searcher {
             "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
             self.node_cnt,
             self.seldepth,
-            tt.hashfull(),
+            tt.hashfull(), // TODO: store hashfull somewhere, and only update it outside of searches (should give speedup)
             self.pv_table.pv_string()
         );
     }
