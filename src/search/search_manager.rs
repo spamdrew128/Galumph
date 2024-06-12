@@ -339,12 +339,12 @@ impl Searcher {
 
         let mut best_score = -INF;
         let mut best_move = Move::NULL;
+        let mut moves_played = 0;
 
         let mut move_picker = MovePicker::new();
-        let mut moves_played = 0;
         let mut played_quiets: ArrayVec<Move, { MovePicker::SIZE }> = ArrayVec::new();
 
-        while let Some(mv) = move_picker.pick::<true>(board, tt_move) {
+        while let Some(mv) = move_picker.pick::<true>(board, &self.history, tt_move) {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -438,7 +438,6 @@ impl Searcher {
             self.zobrist_stack.pop();
 
             if stop_flag_is_set() || self.out_of_time() {
-                // TODO: try moving this above score
                 set_stop_flag();
                 return 0;
             }
