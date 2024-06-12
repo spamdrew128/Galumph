@@ -256,29 +256,35 @@ impl MovePicker {
         board: &Board,
         tt_move: Move,
     ) -> Option<Move> {
-        while self.stage_complete() {
-            self.advance_stage();
+        loop {
+            while self.stage_complete() {
+                self.advance_stage();
 
-            match self.stage {
-                MoveStage::TT_MOVE => {
-                    if tt_move.is_pseudolegal(board) {
-                        return Some(tt_move);
+                match self.stage {
+                    MoveStage::TT_MOVE => {
+                        if tt_move.is_pseudolegal(board) {
+                            return Some(tt_move);
+                        }
                     }
-                }
-                MoveStage::NOISY => {
-                    self.gen_moves::<true>(board);
-                    self.score_noisy(board);
-                }
-                MoveStage::QUIET => {
-                    if INCLUDE_QUIETS {
-                        self.gen_moves::<false>(board);
+                    MoveStage::NOISY => {
+                        self.gen_moves::<true>(board);
+                        self.score_noisy(board);
                     }
+                    MoveStage::QUIET => {
+                        if INCLUDE_QUIETS {
+                            self.gen_moves::<false>(board);
+                        }
+                    }
+                    _ => return None,
                 }
-                _ => return None,
+            }
+
+            let potential_move = self.next_best_move();
+            // TODO: figure out a better way to check for repeats :p
+            if potential_move != tt_move {
+                return Some(potential_move);
             }
         }
-
-        Some(self.next_best_move())
     }
 
     pub fn simple_pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {

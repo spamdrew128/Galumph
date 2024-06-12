@@ -25,7 +25,9 @@ fn temp_eval(board: &Board) -> EvalScore {
 }
 
 use super::{
-    pv_table::PvTable, search_timer::SearchTimer, transposition_table::{TTFlag, TranspositionTable},
+    pv_table::PvTable,
+    search_timer::SearchTimer,
+    transposition_table::{TTFlag, TranspositionTable},
     zobrist_stack::ZobristStack,
 };
 
