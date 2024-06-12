@@ -14,7 +14,8 @@ use crate::{
     search::constants::{
         Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
         MAX_PLY,
-    }, uci::setoption::Hash,
+    },
+    uci::setoption::Hash,
 };
 
 // for testing only
@@ -23,7 +24,10 @@ fn temp_eval(board: &Board) -> EvalScore {
     acc.evaluate(board.stm)
 }
 
-use super::{pv_table::PvTable, search_timer::SearchTimer, transposition_table::TranspositionTable, zobrist_stack::ZobristStack};
+use super::{
+    pv_table::PvTable, search_timer::SearchTimer, transposition_table::TranspositionTable,
+    zobrist_stack::ZobristStack,
+};
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -97,7 +101,7 @@ impl SearchManager {
     }
 
     pub fn start_search(&mut self, config: &SearchConfig) {
-        self.searcher.go(&self.board, config, true);
+        self.searcher.go(&self.board, &self.tt, config, true);
     }
 
     pub fn start_bench_search(&mut self, depth: Depth) -> Nodes {
@@ -105,7 +109,7 @@ impl SearchManager {
         config.limits.push(SearchLimit::Depth(depth));
 
         clear_stop_flag();
-        self.searcher.go(&self.board, &config, false);
+        self.searcher.go(&self.board, &self.tt, &config, false);
 
         self.searcher.node_cnt
     }
@@ -143,7 +147,13 @@ impl Searcher {
         self.node_cnt = 0;
     }
 
-    fn report_search_info(&self, score: EvalScore, depth: Depth, stopwatch: Instant) {
+    fn report_search_info(
+        &self,
+        tt: &TranspositionTable,
+        score: EvalScore,
+        depth: Depth,
+        stopwatch: Instant,
+    ) {
         let score_str = if score >= MATE_THRESHOLD {
             let ply = EVAL_MAX - score;
             let score_value = (ply + 1) / 2;
@@ -163,9 +173,10 @@ impl Searcher {
         let nps = (u128::from(self.node_cnt) * 1_000_000) / elapsed.as_micros().max(1);
 
         println!(
-            "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {} pv {}",
+            "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
             self.node_cnt,
             self.seldepth,
+            tt.hashfull(),
             self.pv_table.pv_string()
         );
     }
@@ -215,7 +226,13 @@ impl Searcher {
         result
     }
 
-    fn go(&mut self, board: &Board, config: &SearchConfig, report_info: bool) {
+    fn go(
+        &mut self,
+        board: &Board,
+        tt: &TranspositionTable,
+        config: &SearchConfig,
+        report_info: bool,
+    ) {
         self.reset_info();
 
         self.timer = None;
@@ -226,14 +243,14 @@ impl Searcher {
         let mut best_move = Move::NULL;
         let mut depth = 1;
         while self.continue_deepening(config, depth) {
-            let score = self.negamax::<true>(board, depth, 0, -INF, INF);
+            let score = self.negamax::<true>(board, tt, depth, 0, -INF, INF);
 
             if stop_flag_is_set() {
                 break;
             }
 
             if report_info {
-                self.report_search_info(score, depth, stopwatch);
+                self.report_search_info(tt, score, depth, stopwatch);
             }
 
             best_move = self.pv_table.best_move();
@@ -264,6 +281,7 @@ impl Searcher {
     fn negamax<const IS_ROOT: bool>(
         &mut self,
         board: &Board,
+        tt: &TranspositionTable,
         depth: Depth,
         ply: Ply,
         mut alpha: EvalScore,
@@ -313,7 +331,7 @@ impl Searcher {
             moves_played += 1;
             self.node_cnt += 1;
 
-            let score = -self.negamax::<false>(&new_board, depth - 1, ply + 1, -beta, -alpha);
+            let score = -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
 
             self.zobrist_stack.pop();
 
