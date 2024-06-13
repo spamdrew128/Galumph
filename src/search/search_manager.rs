@@ -95,6 +95,7 @@ impl SearchManager {
     pub fn newgame(&mut self) {
         self.tt.reset_entries();
         self.searcher.history = History::new();
+        self.searcher.killers = Killers::new();
     }
 
     pub fn resize_tt(&mut self, megabytes: u32) {
