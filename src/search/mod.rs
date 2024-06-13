@@ -1,5 +1,6 @@
 pub(crate) mod bench;
 pub(crate) mod constants;
+pub(crate) mod history;
 mod pv_table;
 pub(crate) mod search_manager;
 mod search_timer;

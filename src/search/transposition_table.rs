@@ -212,7 +212,6 @@ impl TranspositionTable {
         }
     }
 
-    // TODO: store hashfull in tt, and only update it outside of searches (should give speedup)
     pub fn hashfull(&self) -> i32 {
         let mut hash_full = 0;
         self.table.iter().take(1000).for_each(|x| {

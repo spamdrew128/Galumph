@@ -5,6 +5,7 @@ use crate::{
         board_rep::{Bitboard, Board, Piece, Square},
         chess_move::{Flag, Move},
     },
+    search::history::History,
     tuple_constants_enum,
 };
 
@@ -86,7 +87,7 @@ pub struct MovePicker {
 }
 
 impl MovePicker {
-    const SIZE: usize = u8::MAX as usize;
+    pub const SIZE: usize = u8::MAX as usize;
 
     pub fn new() -> Self {
         Self {
@@ -217,6 +218,7 @@ impl MovePicker {
         }
     }
 
+    // Essentially this is selection sort
     fn next_best_move(&mut self) -> Move {
         let mut best_idx = self.idx;
         let mut best_score = self.list[self.idx].score;
@@ -234,7 +236,7 @@ impl MovePicker {
         mv
     }
 
-    fn score_noisy(&mut self, board: &Board) {
+    fn score_noisy_moves(&mut self, board: &Board) {
         // TODO: give bonus to promotions
         let mut start = self.idx as i32;
         let end = self.limit as i32 - 1;
@@ -251,9 +253,22 @@ impl MovePicker {
         }
     }
 
+    fn score_quiet_moves(&mut self, board: &Board, history: &History) {
+        for elem in self
+            .list
+            .iter_mut()
+            .skip(self.idx)
+            .take(self.limit - self.idx)
+        {
+            debug_assert!(elem.mv.is_quiet());
+            elem.score = history.score(board, elem.mv) as i16;
+        }
+    }
+
     pub fn pick<const INCLUDE_QUIETS: bool>(
         &mut self,
         board: &Board,
+        history: &History,
         tt_move: Move,
     ) -> Option<Move> {
         loop {
@@ -268,11 +283,12 @@ impl MovePicker {
                     }
                     MoveStage::NOISY => {
                         self.gen_moves::<true>(board);
-                        self.score_noisy(board);
+                        self.score_noisy_moves(board);
                     }
                     MoveStage::QUIET => {
                         if INCLUDE_QUIETS {
                             self.gen_moves::<false>(board);
+                            self.score_quiet_moves(board, history);
                         }
                     }
                     _ => return None,
@@ -288,7 +304,8 @@ impl MovePicker {
     }
 
     pub fn simple_pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
-        self.pick::<INCLUDE_QUIETS>(board, Move::NULL)
+        let dummy_hist = History::new();
+        self.pick::<INCLUDE_QUIETS>(board, &dummy_hist, Move::NULL)
     }
 
     pub fn first_legal_mv(board: &Board) -> Option<Move> {

@@ -4,6 +4,8 @@ use std::{
     vec,
 };
 
+use arrayvec::ArrayVec;
+
 use crate::{
     move_generation::{
         board_rep::{Board, Color, START_FEN},
@@ -25,6 +27,7 @@ fn temp_eval(board: &Board) -> EvalScore {
 }
 
 use super::{
+    history::History,
     pv_table::PvTable,
     search_timer::SearchTimer,
     transposition_table::{TTFlag, TranspositionTable},
@@ -91,6 +94,7 @@ impl SearchManager {
 
     pub fn newgame(&mut self) {
         self.tt.reset_entries();
+        self.searcher.history = History::new();
     }
 
     pub fn resize_tt(&mut self, megabytes: u32) {
@@ -121,6 +125,7 @@ impl SearchManager {
 struct Searcher {
     timer: Option<SearchTimer>,
     zobrist_stack: ZobristStack,
+    history: History,
 
     // info
     pv_table: PvTable,
@@ -136,6 +141,7 @@ impl Searcher {
         Self {
             timer: None,
             zobrist_stack: ZobristStack::new(&Board::from_fen(START_FEN)),
+            history: History::new(),
             pv_table: PvTable::new(),
             best_move: Move::NULL,
             seldepth: 0,
@@ -178,7 +184,7 @@ impl Searcher {
             "info score {score_str} time {time} nodes {} nps {nps} depth {depth} seldepth {} hashfull {} pv {}",
             self.node_cnt,
             self.seldepth,
-            tt.hashfull(),
+            tt.hashfull(), // TODO: store hashfull somewhere, and only update it outside of searches (should give speedup)
             self.pv_table.pv_string()
         );
     }
@@ -268,6 +274,8 @@ impl Searcher {
         if report_info {
             println!("bestmove {}", best_move.as_string());
         }
+
+        self.history.age_scores();
     }
 
     fn out_of_time(&self) -> bool {
@@ -331,10 +339,12 @@ impl Searcher {
 
         let mut best_score = -INF;
         let mut best_move = Move::NULL;
+        let mut moves_played = 0;
 
         let mut move_picker = MovePicker::new();
-        let mut moves_played = 0;
-        while let Some(mv) = move_picker.pick::<true>(board, tt_move) {
+        let mut played_quiets: ArrayVec<Move, { MovePicker::SIZE }> = ArrayVec::new();
+
+        while let Some(mv) = move_picker.pick::<true>(board, &self.history, tt_move) {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -354,6 +364,11 @@ impl Searcher {
                 return 0;
             }
 
+            let is_quiet = mv.is_quiet();
+            if is_quiet {
+                played_quiets.push(mv);
+            }
+
             if score > best_score {
                 best_score = score;
 
@@ -365,6 +380,9 @@ impl Searcher {
                 }
 
                 if score >= beta {
+                    if is_quiet {
+                        self.history.update(board, played_quiets.as_slice(), depth);
+                    }
                     break;
                 }
             }
@@ -420,7 +438,6 @@ impl Searcher {
             self.zobrist_stack.pop();
 
             if stop_flag_is_set() || self.out_of_time() {
-                // TODO: try moving this above score
                 set_stop_flag();
                 return 0;
             }
