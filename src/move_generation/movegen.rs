@@ -67,6 +67,7 @@ impl MoveStage {
         START,
         TT_MOVE,
         NOISY,
+        KILLER,
         QUIET
     );
 
@@ -270,6 +271,7 @@ impl MovePicker {
         board: &Board,
         history: &History,
         tt_move: Move,
+        killer: Move,
     ) -> Option<Move> {
         loop {
             while self.stage_complete() {
@@ -285,6 +287,11 @@ impl MovePicker {
                         self.gen_moves::<true>(board);
                         self.score_noisy_moves(board);
                     }
+                    MoveStage::KILLER => {
+                        if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
+                            return Some(killer);
+                        }
+                    }
                     MoveStage::QUIET => {
                         if INCLUDE_QUIETS {
                             self.gen_moves::<false>(board);
@@ -296,16 +303,24 @@ impl MovePicker {
             }
 
             let potential_move = self.next_best_move();
-            // TODO: figure out a better way to check for repeats :p
-            if potential_move != tt_move {
+            /*
+                TODO: can I make this more efficient?
+                tt_move and killer could be null, or they could
+                just straight up not apply to the position
+                ie. if we are in noisy stage and killer is quiet
+
+                maybe I could store a list of potential repeats in the picker struct...
+            */
+            if ![tt_move, killer].contains(&potential_move) {
                 return Some(potential_move);
             }
         }
     }
 
     pub fn simple_pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+        // NOTE: compiler should optimize dummy_hist out I think... I should check sometime
         let dummy_hist = History::new();
-        self.pick::<INCLUDE_QUIETS>(board, &dummy_hist, Move::NULL)
+        self.pick::<INCLUDE_QUIETS>(board, &dummy_hist, Move::NULL, Move::NULL)
     }
 
     pub fn first_legal_mv(board: &Board) -> Option<Move> {

@@ -12,7 +12,6 @@ use crate::{
         chess_move::Move,
         movegen::MovePicker,
     },
-    nnue::eval::material_diff,
     search::constants::{
         Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
         MAX_PLY,
@@ -20,7 +19,7 @@ use crate::{
     uci::setoption::Hash,
 };
 
-// for testing only
+// temporary until I train my own net
 fn temp_eval(board: &Board) -> EvalScore {
     let acc = crate::nnue::network::Accumulator::from_pos(board);
     acc.evaluate(board.stm)
@@ -28,6 +27,7 @@ fn temp_eval(board: &Board) -> EvalScore {
 
 use super::{
     history::History,
+    killers::Killers,
     pv_table::PvTable,
     search_timer::SearchTimer,
     transposition_table::{TTFlag, TranspositionTable},
@@ -95,6 +95,7 @@ impl SearchManager {
     pub fn newgame(&mut self) {
         self.tt.reset_entries();
         self.searcher.history = History::new();
+        self.searcher.killers = Killers::new();
     }
 
     pub fn resize_tt(&mut self, megabytes: u32) {
@@ -126,6 +127,7 @@ struct Searcher {
     timer: Option<SearchTimer>,
     zobrist_stack: ZobristStack,
     history: History,
+    killers: Killers,
 
     // info
     pv_table: PvTable,
@@ -142,6 +144,7 @@ impl Searcher {
             timer: None,
             zobrist_stack: ZobristStack::new(&Board::from_fen(START_FEN)),
             history: History::new(),
+            killers: Killers::new(),
             pv_table: PvTable::new(),
             best_move: Move::NULL,
             seldepth: 0,
@@ -344,7 +347,9 @@ impl Searcher {
         let mut move_picker = MovePicker::new();
         let mut played_quiets: ArrayVec<Move, { MovePicker::SIZE }> = ArrayVec::new();
 
-        while let Some(mv) = move_picker.pick::<true>(board, &self.history, tt_move) {
+        while let Some(mv) =
+            move_picker.pick::<true>(board, &self.history, tt_move, self.killers.killer(ply))
+        {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -381,6 +386,7 @@ impl Searcher {
 
                 if score >= beta {
                     if is_quiet {
+                        self.killers.update(mv, ply);
                         self.history.update(board, played_quiets.as_slice(), depth);
                     }
                     break;
