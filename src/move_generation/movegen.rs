@@ -307,7 +307,7 @@ impl MovePicker {
                 TODO: can I make this more efficient?
                 tt_move and killer could be null, or they could
                 just straight up not apply to the position
-                ie. if we are in capture stage we wont see killers
+                ie. if we are in noisy stage and killer is quiet
 
                 maybe I could store a list of potential repeats in the picker struct...
             */
