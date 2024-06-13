@@ -308,7 +308,7 @@ impl MovePicker {
                 tt_move and killer could be null, or they could
                 just straight up not apply to the position
                 ie. if we are in capture stage we wont see killers
-                
+
                 maybe I could store a list of potential repeats in the picker struct...
             */
             if ![tt_move, killer].contains(&potential_move) {

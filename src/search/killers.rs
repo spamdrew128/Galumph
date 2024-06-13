@@ -1,4 +1,7 @@
-use crate::{move_generation::chess_move::Move, search::constants::{Ply, MAX_PLY}};
+use crate::{
+    move_generation::chess_move::Move,
+    search::constants::{Ply, MAX_PLY},
+};
 
 #[derive(Debug, Clone)]
 pub struct Killers {
