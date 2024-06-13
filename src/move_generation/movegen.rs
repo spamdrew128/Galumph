@@ -288,8 +288,8 @@ impl MovePicker {
                         self.score_noisy_moves(board);
                     }
                     MoveStage::KILLER => {
-                        if killer.is_pseudolegal(board) {
-                            return Some(tt_move);
+                        if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
+                            return Some(killer);
                         }
                     }
                     MoveStage::QUIET => {
