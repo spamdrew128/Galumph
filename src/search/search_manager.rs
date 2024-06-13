@@ -27,11 +27,7 @@ fn temp_eval(board: &Board) -> EvalScore {
 }
 
 use super::{
-    history::History,
-    pv_table::PvTable,
-    search_timer::SearchTimer,
-    transposition_table::{TTFlag, TranspositionTable},
-    zobrist_stack::ZobristStack,
+    history::History, killers::Killers, pv_table::PvTable, search_timer::SearchTimer, transposition_table::{TTFlag, TranspositionTable}, zobrist_stack::ZobristStack
 };
 
 static STOP_FLAG: AtomicBool = AtomicBool::new(false);
@@ -126,6 +122,7 @@ struct Searcher {
     timer: Option<SearchTimer>,
     zobrist_stack: ZobristStack,
     history: History,
+    killers: Killers,
 
     // info
     pv_table: PvTable,
@@ -142,6 +139,7 @@ impl Searcher {
             timer: None,
             zobrist_stack: ZobristStack::new(&Board::from_fen(START_FEN)),
             history: History::new(),
+            killers: Killers::new(),
             pv_table: PvTable::new(),
             best_move: Move::NULL,
             seldepth: 0,
@@ -344,7 +342,7 @@ impl Searcher {
         let mut move_picker = MovePicker::new();
         let mut played_quiets: ArrayVec<Move, { MovePicker::SIZE }> = ArrayVec::new();
 
-        while let Some(mv) = move_picker.pick::<true>(board, &self.history, tt_move) {
+        while let Some(mv) = move_picker.pick::<true>(board, &self.history, tt_move, self.killers.killer(ply)) {
             let mut new_board = board.clone();
 
             let is_legal = new_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -381,6 +379,7 @@ impl Searcher {
 
                 if score >= beta {
                     if is_quiet {
+                        self.killers.update(mv, ply);
                         self.history.update(board, played_quiets.as_slice(), depth);
                     }
                     break;
