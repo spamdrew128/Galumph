@@ -318,6 +318,7 @@ impl MovePicker {
     }
 
     pub fn simple_pick<const INCLUDE_QUIETS: bool>(&mut self, board: &Board) -> Option<Move> {
+        // NOTE: compiler should optimize dummy_hist out I think... I should check sometime
         let dummy_hist = History::new();
         self.pick::<INCLUDE_QUIETS>(board, &dummy_hist, Move::NULL, Move::NULL)
     }
