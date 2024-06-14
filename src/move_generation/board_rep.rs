@@ -9,7 +9,7 @@ use crate::{
 };
 use std::{
     char,
-    ops::{BitAnd, BitOr, BitOrAssign, BitXorAssign, Not, Shl, Shr},
+    ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, Shr},
 };
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
@@ -259,6 +259,10 @@ impl Bitboard {
         Square::new(self.0.trailing_zeros() as u8)
     }
 
+    pub const fn lsb_bb(self) -> Self {
+        Self::new(self.0 & self.0.wrapping_neg())
+    }
+
     fn reset_lsb(&mut self) {
         self.0 = self.0 & (self.0 - 1);
     }
@@ -325,15 +329,23 @@ impl BitOr for Bitboard {
     }
 }
 
-impl BitOrAssign for Bitboard {
-    fn bitor_assign(&mut self, rhs: Self) {
-        self.0 = self.0 | rhs.0;
+impl BitXor for Bitboard {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
     }
 }
 
 impl BitXorAssign for Bitboard {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 = self.0 ^ rhs.0;
+    }
+}
+
+impl BitOrAssign for Bitboard {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 = self.0 | rhs.0;
     }
 }
 

@@ -1,4 +1,4 @@
-mod attacks;
+pub(crate) mod attacks;
 pub(crate) mod board_rep;
 pub(crate) mod chess_move;
 mod magic;
