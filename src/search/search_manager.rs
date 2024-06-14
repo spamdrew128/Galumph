@@ -360,7 +360,22 @@ impl Searcher {
             moves_played += 1;
             self.node_cnt += 1;
 
-            let score = -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
+            #[allow(unused_assignments)]
+            // TODO: maybe refacto this later idk
+            let mut score = 0;
+            if moves_played == 1 {
+                score = -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
+            } else {
+                // FULL DEPTH PVS
+                score =
+                    -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -alpha - 1, -alpha);
+
+                // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
+                if score > alpha && score < beta {
+                    score =
+                        -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
+                }
+            }
 
             self.zobrist_stack.pop();
 
