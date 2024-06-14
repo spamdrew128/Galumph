@@ -335,7 +335,13 @@ impl Searcher {
         // PROBE TT
         let hash = self.zobrist_stack.current_hash();
         let tt_move = if let Some(tt_entry) = tt.probe(hash) {
-            tt_entry.mv // TODO: add tt cutoffs
+            let tt_score = tt_entry.score_from_tt(ply);
+            
+            if !is_pv && tt_entry.cutoff_is_possible(alpha, beta, depth) {
+                return tt_score;
+            }
+
+            tt_entry.mv
         } else {
             Move::NULL
         };
