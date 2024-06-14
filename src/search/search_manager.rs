@@ -361,7 +361,7 @@ impl Searcher {
             self.node_cnt += 1;
 
             #[allow(unused_assignments)]
-            // TODO: maybe refacto this later idk
+            // TODO: maybe refactor this later idk
             let mut score = 0;
             if moves_played == 1 {
                 score = -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
