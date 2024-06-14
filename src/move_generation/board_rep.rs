@@ -664,6 +664,12 @@ impl Board {
         self.pieces[piece.as_index()] ^= mask;
     }
 
+    pub fn play_nullmove(&mut self, zobrist_stack: &mut ZobristStack) {
+        self.stm = self.stm.flip();
+        self.ep_sq = None;
+        zobrist_stack.push(ZobristHash::complete(self));
+    }
+
     pub fn try_play_move(&mut self, mv: Move, zobrist_stack: &mut ZobristStack) -> bool {
         let stm = self.stm;
 
