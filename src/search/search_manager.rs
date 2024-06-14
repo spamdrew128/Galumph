@@ -254,7 +254,7 @@ impl Searcher {
         let mut best_move = Move::NULL;
         let mut depth = 1;
         while self.continue_deepening(config, depth) {
-            let score = self.negamax::<true>(board, tt, depth, 0, -INF, INF);
+            let score = self.negamax::<true, true>(board, tt, depth, 0, -INF, INF);
 
             if stop_flag_is_set() {
                 break;
@@ -291,7 +291,7 @@ impl Searcher {
         false
     }
 
-    fn negamax<const IS_ROOT: bool>(
+    fn negamax<const IS_ROOT: bool, const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
         tt: &TranspositionTable,
@@ -336,7 +336,7 @@ impl Searcher {
         let hash = self.zobrist_stack.current_hash();
         let tt_move = if let Some(tt_entry) = tt.probe(hash) {
             let tt_score = tt_entry.score_from_tt(ply);
-            
+
             if !is_pv && tt_entry.cutoff_is_possible(alpha, beta, depth) {
                 return tt_score;
             }
@@ -357,6 +357,29 @@ impl Searcher {
             let static_eval = temp_eval(board);
             if depth <= RFP_MIN_DEPTH && static_eval >= (beta + RFP_MARGIN * d) {
                 return static_eval;
+            }
+
+            // NULL MOVE PRUNING
+            const NMP_MIN_DEPTH: Depth = 3;
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH { // TODO: add zugzwang check
+                let reduction = 3;
+
+                let mut nmp_board = board.clone();
+                nmp_board.play_nullmove(&mut self.zobrist_stack);
+                let null_move_score = -self.negamax::<false, false>(
+                    &nmp_board,
+                    &tt,
+                    depth.saturating_sub(reduction),
+                    ply + 1,
+                    -beta,
+                    -beta + 1,
+                );
+
+                self.zobrist_stack.pop();
+
+                if null_move_score >= beta {
+                    return null_move_score;
+                }
             }
         }
 
@@ -384,16 +407,29 @@ impl Searcher {
             // TODO: maybe refactor this later idk
             let mut score = 0;
             if moves_played == 1 {
-                score = -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
+                score =
+                    -self.negamax::<false, true>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
             } else {
                 // FULL DEPTH PVS
-                score =
-                    -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -alpha - 1, -alpha);
+                score = -self.negamax::<false, true>(
+                    &new_board,
+                    tt,
+                    depth - 1,
+                    ply + 1,
+                    -alpha - 1,
+                    -alpha,
+                );
 
                 // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
                 if score > alpha && score < beta {
-                    score =
-                        -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
+                    score = -self.negamax::<false, true>(
+                        &new_board,
+                        tt,
+                        depth - 1,
+                        ply + 1,
+                        -beta,
+                        -alpha,
+                    );
                 }
             }
 
