@@ -307,7 +307,7 @@ impl Searcher {
         self.pv_table.set_length(ply);
 
         let old_alpha = alpha;
-        let _is_pv = beta != alpha + 1;
+        let is_pv = beta != alpha + 1;
         let in_check = board.in_check();
 
         let is_drawn =
@@ -339,6 +339,20 @@ impl Searcher {
         } else {
             Move::NULL
         };
+
+        let pruning_allowed = !is_pv && !in_check && alpha.abs() < MATE_THRESHOLD;
+
+        let d = i32::from(depth);
+        if pruning_allowed {
+            // REVERSE FUTILITY PRUNING
+            const RFP_MIN_DEPTH: Depth = 8;
+            const RFP_MARGIN: EvalScore = 120;
+
+            let static_eval = temp_eval(board);
+            if depth <= RFP_MIN_DEPTH && static_eval >= (beta + RFP_MARGIN * d) {
+                return static_eval;
+            }
+        }
 
         let mut best_score = -INF;
         let mut best_move = Move::NULL;
