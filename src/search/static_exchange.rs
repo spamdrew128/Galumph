@@ -1,4 +1,8 @@
-use crate::move_generation::{attacks, board_rep::{Board, Color, Piece}, chess_move::{Flag, Move}};
+use crate::move_generation::{
+    attacks,
+    board_rep::{Board, Color, Piece},
+    chess_move::{Flag, Move},
+};
 
 pub const SEE_VALS: [i32; (Piece::CNT + 1) as usize] = [450, 450, 650, 1250, 100, 0, 0];
 
@@ -22,21 +26,28 @@ impl Board {
         let sq = mv.to();
         let mut color = self.stm;
         let mut next = attacker;
-        let mut occ = self.occupied() ^ sq.as_bitboard() ^ mv.from().as_bitboard();
+
+        // occupied bitboard after move is made
+        let mut occ = (self.occupied() ^ mv.from().as_bitboard()) | sq.as_bitboard();
 
         let base = if mv.flag() == Flag::EP {
+            // remove the captured pawn from occ if move is EP
             occ ^= sq.row_swap().as_bitboard();
 
-            0
+            0 // pawn caputured pawn so base is 0
         } else if mv.is_promo() {
-            next = mv.promo_piece();
+            let promo_pc = mv.promo_piece();
+            next = promo_pc;
 
-            SEE_VALS[victim.as_index()] + SEE_VALS[mv.promo_piece().as_index()]
+            // we invest the value of a pawn, but we get our promo piece value, plus whatever we captured
+            SEE_VALS[victim.as_index()] + SEE_VALS[promo_pc.as_index()]
                 - SEE_VALS[Piece::PAWN.as_index()]
         } else {
+            // our new value will be our captured piece value, with our investment (piece) subtracted
             SEE_VALS[victim.as_index()] - SEE_VALS[attacker.as_index()]
         };
 
+        // the see capture chain ends when we get a non-negative score
         let mut score = base - threshold;
 
         // if we captured a higher value piece than we attacked with,
@@ -105,7 +116,10 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
-    use crate::move_generation::{board_rep::{Board, Piece}, chess_move::Move};
+    use crate::move_generation::{
+        board_rep::{Board, Piece},
+        chess_move::Move,
+    };
 
     #[test]
     fn equal_position_see() {

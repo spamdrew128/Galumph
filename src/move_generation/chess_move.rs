@@ -99,7 +99,7 @@ impl Move {
     }
 
     pub fn is_promo(self) -> bool {
-        // very inefficient so probably avoid where speed matters :p
+        // NOTE: I should check if this actually is able to be optimized :p
         self.flag() >= Flag::QUEEN_CAPTURE_PROMO
             || (self.flag() >= Flag::KNIGHT_PROMO && self.flag() <= Flag::QUEEN_PROMO)
     }
