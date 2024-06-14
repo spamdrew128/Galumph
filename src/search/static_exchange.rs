@@ -103,6 +103,7 @@ impl Board {
             all_attackers = occ & all_attackers;
 
             // swich the color and score to reflect the other side's perspective
+            // the negative one will stop a sequence of equal captures early
             color = color.flip();
             score = -score - 1 - SEE_VALS[next.as_index()];
 
