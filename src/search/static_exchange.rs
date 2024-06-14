@@ -89,11 +89,11 @@ impl Board {
             }
 
             if next == Piece::PAWN || next == Piece::BISHOP || next == Piece::QUEEN {
-                all_attackers |= attacks::bishop(sq, occ) & bishops;
+                all_attackers |= attacks::bishop(sq, occ) & d_sliders;
             }
 
             if next == Piece::ROOK || next == Piece::QUEEN {
-                all_attackers |= attacks::rook(sq, occ) & rooks;
+                all_attackers |= attacks::rook(sq, occ) & hv_sliders;
             }
 
             all_attackers = occ & all_attackers;
