@@ -643,6 +643,13 @@ impl Board {
         }
     }
 
+    pub fn we_have_pieces(&self) -> bool {
+        let us = self.us();
+        let kings = self.piece_bb(Piece::KING, self.stm);
+        let pawns = self.piece_bb(Piece::PAWN, self.stm);
+        us != (kings | pawns)
+    }
+
     pub fn king_sq(&self) -> Square {
         self.piece_bb(Piece::KING, self.stm).lsb()
     }

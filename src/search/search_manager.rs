@@ -361,7 +361,8 @@ impl Searcher {
 
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
-            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH { // TODO: add zugzwang check
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH && board.we_have_pieces() {
+                // TODO: add zugzwang check
                 let reduction = 3;
 
                 let mut nmp_board = board.clone();
