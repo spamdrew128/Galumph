@@ -27,8 +27,8 @@ impl Board {
         let mut color = self.stm;
         let mut next = attacker;
 
-        // occupied bitboard after move is made
-        let mut occ = (self.occupied() ^ mv.from().as_bitboard()) | sq.as_bitboard();
+        // occupied bitboard after move is made (occupied status of to square doesn't affect anything)
+        let mut occ = self.occupied() ^ mv.from().as_bitboard(); // | sq.as_bitboard();
 
         let base = if mv.flag() == Flag::EP {
             // remove the captured pawn from occ if move is EP
@@ -82,6 +82,7 @@ impl Board {
             for piece in ASCENDING_PIECE_ORDER {
                 let piece_bb = our_attackers & self.pieces[piece.as_index()];
                 if piece_bb.not_empty() {
+                    // remove the piece that just captured from occupied bb
                     occ ^= piece_bb.lsb_bb();
                     next = piece;
                     break;
@@ -89,16 +90,21 @@ impl Board {
             }
 
             if next == Piece::PAWN || next == Piece::BISHOP || next == Piece::QUEEN {
+                // moving a pawn, bishop, or queen can reveal diagonal sliding piece xray attacks
                 all_attackers |= attacks::bishop(sq, occ) & d_sliders;
             }
 
             if next == Piece::ROOK || next == Piece::QUEEN {
+                // moving a rook or queens can reveal horizontal/vertical sliding piece xray attacks
                 all_attackers |= attacks::rook(sq, occ) & hv_sliders;
             }
 
+            // remove the piece that just captured from all_attackers
             all_attackers = occ & all_attackers;
-            score = -score - 1 - SEE_VALS[next.as_index()];
+
+            // swich the color and score to reflect the other side's perspective
             color = color.flip();
+            score = -score - 1 - SEE_VALS[next.as_index()];
 
             if score >= 0 {
                 let our_defenders = all_attackers & self.all[color.as_index()];
