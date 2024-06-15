@@ -121,6 +121,7 @@ impl SearchManager {
 
         clear_stop_flag();
         self.searcher.go(&self.board, &self.tt, &config, false);
+        self.tt.age_table();
 
         self.searcher.node_cnt
     }
