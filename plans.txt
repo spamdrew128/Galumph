@@ -8,7 +8,9 @@ Basic Plans:
 - Give bonus to promotions on top of MVV
 - Internal Iterative Reduction
 - Use static eval in search
-- TT in qsearch
+- TT cutoffs in qsearch
+- TT eval in qsearch
+- TT move ordering in qsearch
 - Add Static Eval to TT
 - Asp windows
 - Soft TM
