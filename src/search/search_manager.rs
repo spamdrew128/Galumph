@@ -361,14 +361,15 @@ impl Searcher {
 
             // NULL MOVE PRUNING
             const NMP_MIN_DEPTH: Depth = 3;
-            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH { // TODO: add zugzwang check
+            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH {
+                // TODO: add zugzwang check
                 let reduction = 3;
 
                 let mut nmp_board = board.clone();
                 nmp_board.play_nullmove(&mut self.zobrist_stack);
                 let null_move_score = -self.negamax::<false, false>(
                     &nmp_board,
-                    &tt,
+                    tt,
                     depth.saturating_sub(reduction),
                     ply + 1,
                     -beta,

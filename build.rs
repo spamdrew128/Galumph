@@ -1,3 +1,4 @@
+use build_script_stuff::lmr_builder::get_lmr_bytes;
 use build_script_stuff::magic_builder::get_magic_bytes;
 use build_script_stuff::zobrist_builder::get_zobrist_bytes;
 
@@ -85,6 +86,10 @@ fn main() {
     // Magic table generation
     let magic_bytes = get_magic_bytes();
     gen_output_file("magic_init.bin", magic_bytes.as_slice());
+
+    // LMR table generation
+    let lmr_bytes = get_lmr_bytes();
+    gen_output_file("lmr_init.bin", lmr_bytes.as_slice());
 
     // Zobrist key generation
     let zobrist_bytes = get_zobrist_bytes();
