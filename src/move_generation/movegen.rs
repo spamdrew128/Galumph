@@ -256,7 +256,7 @@ impl MovePicker {
 
             let attacker = board.piece_on_sq(mv.from());
             let victim = board.piece_on_sq(mv.to());
-            self.list[i].score = mvv_lva(attacker, victim);
+            self.list[i].score += mvv_lva(attacker, victim);
 
             // what we are doing here is ordering the good captures at the start of the list,
             // and bad at the end. That way we can store the bad captures in the list
