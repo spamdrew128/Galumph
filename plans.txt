@@ -1,12 +1,13 @@
 Merged:
-
+- SEE move ordering: https://github.com/spamdrew128/Galumph/pull/26
+- SEE qsearch pruning: https://github.com/spamdrew128/Galumph/pull/32
+- Check extensions: https://github.com/spamdrew128/Galumph/pull/34
+- TT replacement scheme: https://github.com/spamdrew128/Galumph/pull/33
 
 Basic Plans:
 - Give bonus to promotions on top of MVV
-- Check extensions
 - Internal Iterative Reduction
 - Use static eval in search
-- TT replacement scheme
 - TT in qsearch
 - Add Static Eval to TT
 - Asp windows
@@ -15,11 +16,10 @@ Basic Plans:
 - Node TM
 - LMP
 - FP
-- SEE move ordering
-- SEE qsearch pruning
 - SEE cutoffs
 - Improving in RFP and LMP
 - Conthist
 
 Experimental Ideas:
 - Shift killer table up by 2 ply when starting a new search
+- Use a net with two different kinds of activation functions in the hidden layer
