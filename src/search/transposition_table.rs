@@ -131,10 +131,9 @@ impl TTEntry {
 
     #[allow(clippy::cast_sign_loss)]
     const fn quality(self) -> u16 {
-        // let age = self.age_and_flag.age() as u16;
-        // let depth = self.depth as u16;
-        // age * 2 + depth
-        0 // always replace for now
+        let age = self.age_and_flag.age() as u16;
+        let depth = self.depth as u16;
+        age * 2 + depth
     }
 }
 
