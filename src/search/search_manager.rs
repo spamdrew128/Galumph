@@ -12,9 +12,12 @@ use crate::{
         chess_move::Move,
         movegen::MovePicker,
     },
-    search::constants::{
-        Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
-        MAX_PLY,
+    search::{
+        constants::{
+            Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
+            MAX_PLY,
+        },
+        late_move_reduction::get_lmr_reduction,
     },
     uci::setoption::Hash,
 };
@@ -351,17 +354,17 @@ impl Searcher {
         let d = i32::from(depth);
         if pruning_allowed {
             // REVERSE FUTILITY PRUNING
-            const RFP_MIN_DEPTH: Depth = 8;
+            const RFP_DEPTH: Depth = 8;
             const RFP_MARGIN: EvalScore = 120;
 
             let static_eval = temp_eval(board);
-            if depth <= RFP_MIN_DEPTH && static_eval >= (beta + RFP_MARGIN * d) {
+            if depth <= RFP_DEPTH && static_eval >= (beta + RFP_MARGIN * d) {
                 return static_eval;
             }
 
             // NULL MOVE PRUNING
-            const NMP_MIN_DEPTH: Depth = 3;
-            if DO_NULL_MOVE && depth >= NMP_MIN_DEPTH {
+            const NMP_DEPTH: Depth = 3;
+            if DO_NULL_MOVE && depth >= NMP_DEPTH {
                 // TODO: add zugzwang check
                 let reduction = 3;
 
@@ -411,26 +414,52 @@ impl Searcher {
                 score =
                     -self.negamax::<false, true>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
             } else {
-                // FULL DEPTH PVS
-                score = -self.negamax::<false, true>(
-                    &new_board,
-                    tt,
-                    depth - 1,
-                    ply + 1,
-                    -alpha - 1,
-                    -alpha,
-                );
+                // LATE MOVE REDUCTIONS
+                const LMR_DEPTH: Depth = 3;
+                let lmr_threshold = if is_pv { 5 } else { 3 };
 
-                // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
-                if score > alpha && score < beta {
+                let mut do_full_depth_pvs = true;
+                if !in_check && depth >= LMR_DEPTH && moves_played > lmr_threshold {
+                    let mut r = get_lmr_reduction(depth, moves_played);
+
+                    if r > 1 {
+                        // REDUCED PVS
+                        r = r.min(depth - 1); // dont reduce beyond (depth - r) == 1
+                        score = -self.negamax::<false, true>(
+                            &new_board,
+                            tt,
+                            depth - r,
+                            ply + 1,
+                            -alpha - 1,
+                            -alpha,
+                        );
+                        // we want to try again without reductions if we beat alpha
+                        do_full_depth_pvs = score > alpha && score < beta; // we want to try again without reductions if we beat alpha
+                    }
+                }
+
+                // FULL DEPTH PVS
+                if do_full_depth_pvs {
                     score = -self.negamax::<false, true>(
                         &new_board,
                         tt,
                         depth - 1,
                         ply + 1,
-                        -beta,
+                        -alpha - 1,
                         -alpha,
                     );
+
+                    // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
+                    if score > alpha && score < beta {
+                        score = -self.negamax::<false, true>(
+                            &new_board,
+                            tt,
+                            depth - 1,
+                            ply + 1,
+                            -beta,
+                            -alpha,
+                        );
+                    }
                 }
             }
 
