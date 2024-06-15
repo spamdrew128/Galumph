@@ -12,9 +12,12 @@ use crate::{
         chess_move::Move,
         movegen::MovePicker,
     },
-    search::constants::{
-        Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
-        MAX_PLY,
+    search::{
+        constants::{
+            Depth, EvalScore, Milliseconds, Nodes, Ply, EVAL_MAX, INF, MATE_THRESHOLD, MAX_DEPTH,
+            MAX_PLY,
+        },
+        late_move_reduction::get_lmr_reduction,
     },
     uci::setoption::Hash,
 };
@@ -254,7 +257,7 @@ impl Searcher {
         let mut best_move = Move::NULL;
         let mut depth = 1;
         while self.continue_deepening(config, depth) {
-            let score = self.negamax::<true>(board, tt, depth, 0, -INF, INF);
+            let score = self.negamax::<true, true>(board, tt, depth, 0, -INF, INF);
 
             if stop_flag_is_set() {
                 break;
@@ -291,7 +294,7 @@ impl Searcher {
         false
     }
 
-    fn negamax<const IS_ROOT: bool>(
+    fn negamax<const IS_ROOT: bool, const DO_NULL_MOVE: bool>(
         &mut self,
         board: &Board,
         tt: &TranspositionTable,
@@ -307,7 +310,7 @@ impl Searcher {
         self.pv_table.set_length(ply);
 
         let old_alpha = alpha;
-        let _is_pv = beta != alpha + 1;
+        let is_pv = beta != alpha + 1;
         let in_check = board.in_check();
 
         let is_drawn =
@@ -335,10 +338,54 @@ impl Searcher {
         // PROBE TT
         let hash = self.zobrist_stack.current_hash();
         let tt_move = if let Some(tt_entry) = tt.probe(hash) {
-            tt_entry.mv // TODO: add tt cutoffs
+            let tt_score = tt_entry.score_from_tt(ply);
+
+            if !is_pv && tt_entry.cutoff_is_possible(alpha, beta, depth) {
+                return tt_score;
+            }
+
+            tt_entry.mv
         } else {
             Move::NULL
         };
+
+        let pruning_allowed = !is_pv && !in_check && alpha.abs() < MATE_THRESHOLD;
+
+        let d = i32::from(depth);
+        if pruning_allowed {
+            // REVERSE FUTILITY PRUNING
+            const RFP_DEPTH: Depth = 8;
+            const RFP_MARGIN: EvalScore = 120;
+
+            let static_eval = temp_eval(board);
+            if depth <= RFP_DEPTH && static_eval >= (beta + RFP_MARGIN * d) {
+                return static_eval;
+            }
+
+            // NULL MOVE PRUNING
+            const NMP_DEPTH: Depth = 3;
+            if DO_NULL_MOVE && depth >= NMP_DEPTH {
+                // TODO: add zugzwang check
+                let reduction = 3;
+
+                let mut nmp_board = board.clone();
+                nmp_board.play_nullmove(&mut self.zobrist_stack);
+                let null_move_score = -self.negamax::<false, false>(
+                    &nmp_board,
+                    tt,
+                    depth.saturating_sub(reduction),
+                    ply + 1,
+                    -beta,
+                    -beta + 1,
+                );
+
+                self.zobrist_stack.pop();
+
+                if null_move_score >= beta {
+                    return null_move_score;
+                }
+            }
+        }
 
         let mut best_score = -INF;
         let mut best_move = Move::NULL;
@@ -360,7 +407,61 @@ impl Searcher {
             moves_played += 1;
             self.node_cnt += 1;
 
-            let score = -self.negamax::<false>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
+            #[allow(unused_assignments)]
+            // TODO: maybe refactor this later idk
+            let mut score = 0;
+            if moves_played == 1 {
+                score =
+                    -self.negamax::<false, true>(&new_board, tt, depth - 1, ply + 1, -beta, -alpha);
+            } else {
+                // LATE MOVE REDUCTIONS
+                const LMR_DEPTH: Depth = 3;
+                let lmr_threshold = if is_pv { 5 } else { 3 };
+
+                let mut do_full_depth_pvs = true;
+                if !in_check && depth >= LMR_DEPTH && moves_played > lmr_threshold {
+                    let mut r = get_lmr_reduction(depth, moves_played);
+
+                    if r > 1 {
+                        // REDUCED PVS
+                        r = r.min(depth - 1); // dont reduce beyond (depth - r) == 1
+                        score = -self.negamax::<false, true>(
+                            &new_board,
+                            tt,
+                            depth - r,
+                            ply + 1,
+                            -alpha - 1,
+                            -alpha,
+                        );
+                        // we want to try again without reductions if we beat alpha
+                        do_full_depth_pvs = score > alpha && score < beta; // we want to try again without reductions if we beat alpha
+                    }
+                }
+
+                // FULL DEPTH PVS
+                if do_full_depth_pvs {
+                    score = -self.negamax::<false, true>(
+                        &new_board,
+                        tt,
+                        depth - 1,
+                        ply + 1,
+                        -alpha - 1,
+                        -alpha,
+                    );
+
+                    // if our null-window search beat alpha without failing high, that means we might have a better move and need to re search with full window
+                    if score > alpha && score < beta {
+                        score = -self.negamax::<false, true>(
+                            &new_board,
+                            tt,
+                            depth - 1,
+                            ply + 1,
+                            -beta,
+                            -alpha,
+                        );
+                    }
+                }
+            }
 
             self.zobrist_stack.pop();
 
