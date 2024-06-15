@@ -337,7 +337,7 @@ impl Searcher {
         };
 
         if depth == 0 || ply >= MAX_PLY {
-            return self.qsearch(board, ply, alpha, beta);
+            return self.qsearch(board, tt, ply, alpha, beta);
         }
 
         self.seldepth = self.seldepth.max(ply);
@@ -519,11 +519,13 @@ impl Searcher {
     fn qsearch(
         &mut self,
         board: &Board,
+        tt: &TranspositionTable,
         ply: Ply,
         mut alpha: EvalScore,
         beta: EvalScore,
     ) -> EvalScore {
         self.seldepth = self.seldepth.max(ply);
+        let old_alpha = alpha;
 
         let stand_pat = temp_eval(board);
         if stand_pat >= beta {
@@ -534,10 +536,20 @@ impl Searcher {
             alpha = stand_pat;
         }
 
+        // TT CUTOFF
+        let hash = self.zobrist_stack.current_hash();
+        if let Some(tt_entry) = tt.probe(hash) {
+            let tt_score = tt_entry.score_from_tt(ply);
+
+            if tt_entry.cutoff_is_possible(alpha, beta, 0) {
+                return tt_score;
+            }
+        }
+
         let mut generator = MovePicker::new();
 
         let mut best_score = stand_pat;
-        let mut _best_move = Move::NULL;
+        let mut best_move = Move::NULL;
         while let Some(mv) = generator.simple_pick::<false>(board) {
             let mut next_board = board.clone();
             let is_legal = next_board.try_play_move(mv, &mut self.zobrist_stack);
@@ -547,7 +559,7 @@ impl Searcher {
 
             self.node_cnt += 1;
 
-            let score = -self.qsearch(&next_board, ply + 1, -beta, -alpha);
+            let score = -self.qsearch(&next_board, tt, ply + 1, -beta, -alpha);
 
             self.zobrist_stack.pop();
 
@@ -560,7 +572,7 @@ impl Searcher {
                 best_score = score;
 
                 if score > alpha {
-                    _best_move = mv;
+                    best_move = mv;
                     alpha = score;
                 }
 
@@ -570,6 +582,8 @@ impl Searcher {
             }
         }
 
+        let tt_flag = TTFlag::determine(best_score, old_alpha, alpha, beta);
+        tt.store(tt_flag, best_score, hash, ply, 0, best_move);
         best_score
     }
 }
