@@ -1,3 +1,7 @@
+Failed:
+- Give bonus to promotions on top of MVV
+- Zugzwang check in NMP
+
 Merged:
 - SEE move ordering: https://github.com/spamdrew128/Galumph/pull/26
 - SEE qsearch pruning: https://github.com/spamdrew128/Galumph/pull/32
@@ -6,7 +10,6 @@ Merged:
 - TT cutoffs in qsearch: https://github.com/spamdrew128/Galumph/pull/35
 
 Basic Plans:
-- Give bonus to promotions on top of MVV
 - Internal Iterative Reduction
 - Use static eval in search
 - TT eval in qsearch
