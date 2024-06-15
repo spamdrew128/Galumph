@@ -6,6 +6,7 @@ mod late_move_reduction;
 mod pv_table;
 pub(crate) mod search_manager;
 mod search_timer;
+mod static_exchange;
 mod transposition_table;
 pub(crate) mod zobrist;
 pub(crate) mod zobrist_stack;

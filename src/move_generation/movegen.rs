@@ -68,7 +68,7 @@ impl MoveStage {
         TT_MOVE,
         NOISY,
         KILLER,
-        QUIET
+        QUIET_AND_BAD_CAP
     );
 
     const fn new(data: u8) -> Self {
@@ -85,6 +85,7 @@ pub struct MovePicker {
     stage: MoveStage,
     idx: usize,
     limit: usize,
+    bad_cap_cnt: usize,
 }
 
 impl MovePicker {
@@ -96,6 +97,7 @@ impl MovePicker {
             stage: MoveStage::START,
             idx: 0,
             limit: 0,
+            bad_cap_cnt: 0,
         }
     }
 
@@ -240,7 +242,7 @@ impl MovePicker {
     fn score_noisy_moves(&mut self, board: &Board) {
         // TODO: give bonus to promotions
         let mut start = self.idx as i32;
-        let end = self.limit as i32 - 1;
+        let mut end = self.limit as i32 - 1;
 
         while start <= end {
             let i = start as usize;
@@ -250,17 +252,25 @@ impl MovePicker {
             let victim = board.piece_on_sq(mv.to());
             self.list[i].score = mvv_lva(attacker, victim);
 
-            start += 1;
+            // what we are doing here is ordering the good captures at the start of the list,
+            // and bad at the end. That way we can store the bad captures in the list
+            // and pull them back out in the QUIET_AND_BAD_CAP stage.
+            if board.see(mv, attacker, victim, 0) {
+                // good capture
+                start += 1;
+            } else {
+                // bad capture
+                self.bad_cap_cnt += 1;
+                self.list.swap(i, end as usize);
+                end -= 1;
+            }
         }
+
+        self.limit -= self.bad_cap_cnt; // remove bad captures from this stage (save for later)
     }
 
-    fn score_quiet_moves(&mut self, board: &Board, history: &History) {
-        for elem in self
-            .list
-            .iter_mut()
-            .skip(self.idx)
-            .take(self.limit - self.idx)
-        {
+    fn score_quiet_moves(&mut self, board: &Board, history: &History, quiet_start: usize) {
+        for elem in self.list[quiet_start..self.limit].iter_mut() {
             debug_assert!(elem.mv.is_quiet());
             elem.score = history.score(board, elem.mv) as i16;
         }
@@ -292,10 +302,18 @@ impl MovePicker {
                             return Some(killer);
                         }
                     }
-                    MoveStage::QUIET => {
+                    MoveStage::QUIET_AND_BAD_CAP => {
+                        // add back in the bad captures to the stage at the front of the list
+                        self.limit += self.bad_cap_cnt;
+
+                        // quiets start right after the bad captures in the list,
+                        // so we need to start here when scoring quiet moves or else
+                        // we will be scoring captures as quiets
+                        let quiet_start = self.limit;
+
                         if INCLUDE_QUIETS {
                             self.gen_moves::<false>(board);
-                            self.score_quiet_moves(board, history);
+                            self.score_quiet_moves(board, history, quiet_start);
                         }
                     }
                     _ => return None,
@@ -309,7 +327,7 @@ impl MovePicker {
                 just straight up not apply to the position
                 ie. if we are in noisy stage and killer is quiet
 
-                maybe I could store a list of potential repeats in the picker struct...
+                maybe I could store a list of potential repeats in the picker struct to modify as I go...
             */
             if ![tt_move, killer].contains(&potential_move) {
                 return Some(potential_move);
