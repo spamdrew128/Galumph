@@ -300,7 +300,7 @@ impl Searcher {
         &mut self,
         board: &Board,
         tt: &TranspositionTable,
-        depth: Depth,
+        mut depth: Depth,
         ply: Ply,
         mut alpha: EvalScore,
         beta: EvalScore,
@@ -330,6 +330,11 @@ impl Searcher {
                 return mate_alpha;
             }
         }
+
+        // CHECK EXTENSION
+        if !IS_ROOT && in_check {
+            depth += 1;
+        };
 
         if depth == 0 || ply >= MAX_PLY {
             return self.qsearch(board, ply, alpha, beta);
