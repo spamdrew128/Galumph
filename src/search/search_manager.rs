@@ -112,6 +112,7 @@ impl SearchManager {
 
     pub fn start_search(&mut self, config: &SearchConfig) {
         self.searcher.go(&self.board, &self.tt, config, true);
+        self.tt.age_table();
     }
 
     pub fn start_bench_search(&mut self, depth: Depth) -> Nodes {
