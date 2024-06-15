@@ -1,0 +1,20 @@
+Basic Plans:
+- Give bonus to promotions on top of MVV
+- Use static eval in search
+- TT replacement scheme
+- TT in qsearch
+- Add Static Eval to TT
+- Asp windows
+- Make formulas better for NMP, LMR, LMP
+- Soft TM
+- Node TM
+- LMP
+- FP
+- SEE move ordering
+- SEE qsearch pruning
+- SEE cutoffs
+- Improving in RFP and LMP
+- Conthist
+
+Experimental Ideas:
+- Shift killer table up by 2 ply when starting a new search
