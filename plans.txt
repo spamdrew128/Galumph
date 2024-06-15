@@ -3,12 +3,12 @@ Merged:
 - SEE qsearch pruning: https://github.com/spamdrew128/Galumph/pull/32
 - TT replacement scheme: https://github.com/spamdrew128/Galumph/pull/33
 - Check extensions: https://github.com/spamdrew128/Galumph/pull/34
+- TT cutoffs in qsearch: https://github.com/spamdrew128/Galumph/pull/35
 
 Basic Plans:
 - Give bonus to promotions on top of MVV
 - Internal Iterative Reduction
 - Use static eval in search
-- TT cutoffs in qsearch
 - TT eval in qsearch
 - TT move ordering in qsearch
 - Add Static Eval to TT
@@ -25,4 +25,4 @@ Basic Plans:
 Experimental Ideas:
 - Shift killer table up by 2 ply when starting a new search
 - Use a net with two different kinds of activation functions in the hidden layer
-- Store hashfull
+- Store hashfull rather than recalculating every search
