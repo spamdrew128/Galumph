@@ -101,6 +101,12 @@ impl MovePicker {
         }
     }
 
+    fn add_noisy_promo(&mut self, mv: Move) {
+        self.list[self.limit].mv = mv;
+        self.list[self.limit].score = 8; // we gain a queen and lose a pawn
+        self.limit += 1;
+    }
+
     fn add(&mut self, mv: Move) {
         self.list[self.limit].mv = mv;
         self.limit += 1;
@@ -161,7 +167,7 @@ impl MovePicker {
             |to| attacks::pawn(from, stm).and(opps),
             {
                 if NOISY {
-                    self.add(Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO));
+                    self.add_noisy_promo(Move::new(to, from, Flag::QUEEN_CAPTURE_PROMO));
                 } else {
                     self.add(Move::new(to, from, Flag::KNIGHT_CAPTURE_PROMO));
                     self.add(Move::new(to, from, Flag::BISHOP_CAPTURE_PROMO));
@@ -174,7 +180,7 @@ impl MovePicker {
         bitloop!(|to| promotion_moves, {
             let from = to.retreat(1, stm);
             if NOISY {
-                self.add(Move::new(to, from, Flag::QUEEN_PROMO));
+                self.add_noisy_promo(Move::new(to, from, Flag::QUEEN_PROMO));
             } else {
                 self.add(Move::new(to, from, Flag::KNIGHT_PROMO));
                 self.add(Move::new(to, from, Flag::BISHOP_PROMO));
