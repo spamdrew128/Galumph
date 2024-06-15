@@ -1,5 +1,10 @@
+Merged:
+
+
 Basic Plans:
 - Give bonus to promotions on top of MVV
+- Check extensions
+- Internal Iterative Reduction
 - Use static eval in search
 - TT replacement scheme
 - TT in qsearch

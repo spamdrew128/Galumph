@@ -298,7 +298,12 @@ impl MovePicker {
                         self.score_noisy_moves(board);
                     }
                     MoveStage::KILLER => {
-                        if INCLUDE_QUIETS && killer.is_pseudolegal(board) {
+                        // Stop after noisy stage if we aren't using quiets
+                        if !INCLUDE_QUIETS {
+                            return None;
+                        }
+
+                        if killer.is_pseudolegal(board) {
                             return Some(killer);
                         }
                     }
@@ -311,10 +316,8 @@ impl MovePicker {
                         // we will be scoring captures as quiets
                         let quiet_start = self.limit;
 
-                        if INCLUDE_QUIETS {
-                            self.gen_moves::<false>(board);
-                            self.score_quiet_moves(board, history, quiet_start);
-                        }
+                        self.gen_moves::<false>(board);
+                        self.score_quiet_moves(board, history, quiet_start);
                     }
                     _ => return None,
                 }
