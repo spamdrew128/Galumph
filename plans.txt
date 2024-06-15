@@ -1,8 +1,8 @@
 Merged:
 - SEE move ordering: https://github.com/spamdrew128/Galumph/pull/26
 - SEE qsearch pruning: https://github.com/spamdrew128/Galumph/pull/32
-- Check extensions: https://github.com/spamdrew128/Galumph/pull/34
 - TT replacement scheme: https://github.com/spamdrew128/Galumph/pull/33
+- Check extensions: https://github.com/spamdrew128/Galumph/pull/34
 
 Basic Plans:
 - Give bonus to promotions on top of MVV
