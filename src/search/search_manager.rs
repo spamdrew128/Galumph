@@ -136,7 +136,6 @@ struct Searcher {
 
     // info
     pv_table: PvTable,
-    best_move: Move,
     seldepth: u8,
     node_cnt: u64,
 }
@@ -151,14 +150,12 @@ impl Searcher {
             history: History::new(),
             killers: Killers::new(),
             pv_table: PvTable::new(),
-            best_move: Move::NULL,
             seldepth: 0,
             node_cnt: 0,
         }
     }
 
     fn reset_info(&mut self) {
-        self.best_move = Move::NULL;
         self.seldepth = 0;
         self.node_cnt = 0;
     }
